@@ -6,7 +6,7 @@ Then add this line to your```~/.bashrc```file:
 ```commandline
 source ~/Documents/utility/utility.sh
 ```
-###CONTENT
+### CONTENT
 1. _extract_
 
 Extract any archive file to the current folder. 
