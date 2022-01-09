@@ -3,14 +3,6 @@
 
 Utility functions to facilitate day-to-day jobs on the command line
 
-
-## Acknowledgements
-
- - [Awesome Readme Templates](https://awesomeopensource.com/project/elangosundar/awesome-README-templates)
- - [Awesome README](https://github.com/matiassingers/awesome-readme)
- - [How to write a Good readme](https://bulldogjob.com/news/449-how-to-write-a-good-readme-for-your-github-project)
-
-
 ## Authors
 
 - [@vitali87](https://github.com/vitali87)
@@ -18,7 +10,7 @@ Utility functions to facilitate day-to-day jobs on the command line
 
 ## Installation
 
-Put ```utility.sh``` file into a location of your choice, e.g. into ```~/Documents/utility/folder```. Then add this line to your```~/.bashrcfile```:
+Put ```utility.sh``` file into a location of your choice, e.g. into ```~/Documents/utility/folder```. Then add this line to your```~/.bashrc```file:
     
 ## Usage/Examples
 
