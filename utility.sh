@@ -1,7 +1,7 @@
 #!/bin/bash
 
 formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar)
-function extract () {
+extract () {
   if [[ "$1" == *"${formats[0]}" ]] ||
     [[ "$1" == *"${formats[1]}" ]] ||
     [[ "$1" == *"${formats[2]}" ]] ||
