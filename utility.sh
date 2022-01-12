@@ -1,7 +1,7 @@
 #!/bin/bash
 
 formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar)
-function extract() {
+function extract () {
   if [[ "$1" == *"${formats[0]}" ]] ||
     [[ "$1" == *"${formats[1]}" ]] ||
     [[ "$1" == *"${formats[2]}" ]] ||
@@ -26,4 +26,19 @@ function extract() {
   else
     echo "Please specify a correct archive format: "${formats[@]}""
   fi
+}
+
+str_seq () {
+  str="$1"
+  n="$2"
+  user_delim="$3"
+  delim=${user_delim:-"_"}
+
+  declare -a out
+
+  for i in $(seq "$n"); do
+    out+=("$str$delim$i")
+    done
+
+  echo "${out[@]}"
 }
