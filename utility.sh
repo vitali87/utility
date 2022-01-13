@@ -54,10 +54,10 @@ peek () {
   last_1=$((n - 2))
   user_n="$2"
 
-  if [ "$n" -gt 22 ]; then
+  if [ "$n" -gt 25 ]; then
      < "$1" xsv select 1-"${user_n:-23}",$last_1,$last | head -n "${user_n:-25}" | xsv table;
   else
-     < "$1" xsv select 1-$last | head -n "${user_n:-25}" | xsv table;
+     < "$1" xsv select 1-"${user_n:-$last}" | head -n "${user_n:-25}" | xsv table;
   fi
 }
 
