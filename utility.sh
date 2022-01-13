@@ -24,7 +24,7 @@ extract () {
   elif [[ "$1" == *"${formats[13]}" ]]; then
     unrar e "$1"
   else
-    echo "Please specify a correct archive format: "${formats[@]}""
+    echo "Please specify a correct archive format: \"${formats[*]}\""
   fi
 }
 
@@ -42,3 +42,17 @@ str_seq () {
 
   echo "${out[@]}"
 }
+
+peek () {
+  n=$(xsv headers "$1" | wc -l)
+  last=$((n - 1))
+  last_1=$((n - 2))
+  user_n="$2"
+
+  if [ "$n" -gt 22 ]; then
+     < "$1" xsv select 1-"${user_n:-23}",$last_1,$last | head -n "${user_n:-25}" | xsv table;
+  else
+     < "$1" xsv select 1-$last | head -n "${user_n:-25}" | xsv table;
+  fi
+}
+
