@@ -50,14 +50,16 @@ str_seq () {
 
 peek () {
   n=$(xsv headers "$1" | wc -l)
-  last=$((n - 1))
-  last_1=$((n - 2))
+  n_1=$((n - 1))
   user_n="$2"
+  choice="${user_n:-25}"
+  len=$((choice + 1))
+  user_n_2=$((choice - 2))
 
   if [ "$n" -gt 25 ]; then
-     < "$1" xsv select 1-"${user_n:-23}",$last_1,$last | head -n "${user_n:-25}" | xsv table;
+      < "$1" xsv select 1-"$user_n_2","$n_1","$n" | head -n "$len" | xsv table;
   else
-     < "$1" xsv select 1-"${user_n:-$last}" | head -n "${user_n:-25}" | xsv table;
+     < "$1" xsv select 1-"${user_n:-$n}" | head -n "$len" | xsv table;
   fi
 }
 
