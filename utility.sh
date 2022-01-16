@@ -83,6 +83,12 @@ get () {
 		watch -n 5 -d '/bin/free -m'
 	elif [[ $arg1 == function_loaded ]]; then
 		shopt -s extdebug;declare -F | grep -v "declare -f _" | declare -F $(awk "{print $3}") | column -t;shopt -u extdebug
+	elif [ "$arg1" == email ]; then
+	  # Before using this function, create an App password in your google account
+    # And use it instead of your password
+    read -r -p 'Username: ' uservar
+    read -r -sp 'Password: ' passvar
+    curl -u "$uservar":"$passvar" --silent "https://mail.google.com/mail/feed/atom" | tr -d '\n' | awk -F '<entry>' '{for (i=2; i<=NF; i++) {print $i}}' | sed -n "s/<title>\(.*\)<\/title.*name>\(.*\)<\/name>.*/\2 - \1/p"
 	fi
 }
 
@@ -151,17 +157,9 @@ search () {
 	arg1=$1
 	arg2=$2
 
-	grep -RnisI $arg1 $arg2
+	grep -RnisI "$arg1" "$arg2"
 }
 complete -W "all <filename>" search
-
-# Before using this function, creata an App password in your google account
-# And use it instead of your password
-email () {
-	read -p 'Username: ' uservar
-	read -sp 'Password: ' passvar
-	curl -u $uservar:$passvar --silent "https://mail.google.com/mail/feed/atom" | tr -d '\n' | awk -F '<entry>' '{for (i=2; i<=NF; i++) {print $i}}' | sed -n "s/<title>\(.*\)<\/title.*name>\(.*\)<\/name>.*/\2 - \1/p"
-}
 
 # replace slashes back and forth
 replace () {

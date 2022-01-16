@@ -1,17 +1,33 @@
 
 # utility
 
-Utility functions to facilitate day-to-day jobs on the command line
+Utility functions to facilitate day-to-day jobs on the command line. 
+All functions follow the following pseudocode:
+
+```Action [Object] [Target]```
+
+<ins>Action</ins> is any programmatic verb that defined actions to be executed, 
+such as *get*, *peek* or *replace*. 
+
+<ins>Object</ins>  is any IT object like *file*, *memory* or *connection*.
+
+<ins>Target</ins>  can be any destination, direction or number like *file* where 
+the pattern is searched, *direction* (back/forth) when applying replacement or 
+output *length* when rendering the desired output. 
 
 ## Authors
-
-- [@vitali87](https://github.com/vitali87)
+Vitali Avagyan: [@vitali87](https://github.com/vitali87)
 
 
 ## Installation
 
-Put ```utility.sh``` file into a location of your choice, e.g. into ```~/Documents/utility/folder```. Then add this line to your```~/.bashrc```file:
-    
+Put ```utility.sh``` file into a location of your choice, e.g. into 
+```~/Documents/utility/```. Then add this line to your```~/.bashrc```file:
+
+```commandline
+source ~/Documents/utility/utility.sh
+```
+
 ## Usage/Examples
 
 Navigate to the desired folder (or alternatively specify the full path) containing the archive file - thunderbird in this example - and execute the following command:
@@ -25,7 +41,7 @@ extract thunderbird-91.3.0.tar.bz2
 To run tests, run the following command
 
 ```commandline
-extract blablabla
+TBC
 ```
 
 It will fail with an informative message.
@@ -33,13 +49,13 @@ It will fail with an informative message.
 
 ## Related
 
-Here are some related projects
+Here are some related projects:
 
 
 
-## Optimizations
+## Optimisations
 
-Optimizations in the code are highly welcomed:
+Optimisations in the code are highly welcomed:
 - refactors
 - performance improvements
 - accessibility
@@ -142,10 +158,12 @@ Go to the project directory
 
 Install dependencies
 
-TBD
+```commandline
+TBC
+```
 
 
 ## Support
 
-For support, email eheva87@gmail.com or send a message to my [LinkedIn](https://www.linkedin.com/in/vitali-avagyan-a1566234/)
+For support, email **eheva87@gmail.com** or send a message to my [LinkedIn](https://www.linkedin.com/in/vitali-avagyan-a1566234/)
 
