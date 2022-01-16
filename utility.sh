@@ -94,6 +94,7 @@ remove () {
 }
 complete -W "duplicates" remove
 
+# convert files' spaces into underscores
 underscorise () {
 	arg1=$1
 
@@ -104,3 +105,47 @@ underscorise () {
 	fi
 }
 complete -W "all <filename>" underscorise
+
+# simple Calculator
+? () { 
+	echo "$*" | bc -l; 
+}
+
+# single line for creating and entering directory
+mkdircd () {
+	mkdir "$1" && cd $_
+}
+
+# convert manula page into pdf
+man2pdf () {
+	man -t "$1" | ps2pdf - "$2".pdf
+}
+complete -W "man-page pdf-filename-only" man2pdf
+
+# generate random-length passwords etc.
+generate () {
+	arg1=$1
+	arg2=$2
+	if [[ $arg1 == "passwd" ]]; then
+		strings /dev/urandom | grep -o '[[:alnum:]]' | head -n $arg2 | tr -d '\n'; echo
+	fi
+}
+complete -W "passwd" generate
+
+# graph various important stuff
+graph () {
+	arg1=$1
+	if [[ $arg1 == "connection" ]]; then
+		netstat -an | grep ESTABLISHED | awk '{print $5}' | awk -F: '{print $1}' | sort | uniq -c | awk '{ printf("%s\t%s\t",$2,$1) ; for (i = 0; i < $1; i++) {printf("*")}; print "" }' 
+	fi
+}
+complete -W "connection" graph
+
+# search what pattern where
+search () {
+	arg1=$1
+	arg2=$2
+
+	grep -RnisI $arg1 $arg2
+}
+complete -W "all <filename>" search
