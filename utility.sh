@@ -71,6 +71,7 @@ startup_remove () {
 get () {
 	  arg1="$1"
 	  arg2="$2"
+	
 	if [[ $arg1 == ip_external ]]; then
 		curl ifconfig.me
 	elif [[ $arg1 == cmd_most_often ]]; then
@@ -78,10 +79,14 @@ get () {
 	elif [[ $arg1 == ps_ram ]]; then
 		user_n=$arg2
 		ps aux | sort -nk +4 | tail -n "${user_n:-10}"
+	elif [[ $arg1 == memory ]]; then
+		watch -n 5 -d '/bin/free -m'
+	elif [[ $arg1 == function_loaded ]]; then
+		shopt -s extdebug;declare -F | grep -v "declare -f _" | declare -F $(awk "{print $3}") | column -t;shopt -u extdebug
 	fi
 }
 
-complete -W "ip_external cmd_most_often ps_ram" get
+complete -W "ip_external cmd_most_often ps_ram memory function_loaded" get
 
 
 remove () {
@@ -149,3 +154,22 @@ search () {
 	grep -RnisI $arg1 $arg2
 }
 complete -W "all <filename>" search
+
+# Before using this function, creata an App password in your google account
+# And use it instead of your password
+email () {
+	read -p 'Username: ' uservar
+	read -sp 'Password: ' passvar
+	curl -u $uservar:$passvar --silent "https://mail.google.com/mail/feed/atom" | tr -d '\n' | awk -F '<entry>' '{for (i=2; i<=NF; i++) {print $i}}' | sed -n "s/<title>\(.*\)<\/title.*name>\(.*\)<\/name>.*/\2 - \1/p"
+}
+
+# replace slashes back and forth
+replace () {
+		
+	if [[ "$2" == to_back ]]; then
+		sed -i 's|\/|\\|g' "$1"
+	elif [[ "$2" == to_forth ]]; then
+		sed -i 's|\\|\/|g' "$1"
+	fi
+}
+complete -W "to_back to_forth" replace
