@@ -64,3 +64,43 @@ peek () {
   fi
 }
 
+startup_remove () {
+	sudo update-rc.d -f $1 remove
+}
+
+get () {
+	  arg1="$1"
+	  arg2="$2"
+	if [[ $arg1 == ip_external ]]; then
+		curl ifconfig.me
+	elif [[ $arg1 == cmd_most_often ]]; then
+		history| awk '{a[$2]++}END{for(i in a){print a[i] " " i}}' | sort -rn | head
+	elif [[ $arg1 == ps_ram ]]; then
+		user_n=$arg2
+		ps aux | sort -nk +4 | tail -n "${user_n:-10}"
+	fi
+}
+
+complete -W "ip_external cmd_most_often ps_ram" get
+
+
+remove () {
+	arg1="$1"
+	arg2="$2"
+
+	if [[ $arg1 == duplicates ]]; then
+		awk '!x[$0]++' "$2"
+	fi
+}
+complete -W "duplicates" remove
+
+underscorise () {
+	arg1=$1
+
+	if [[ $arg1 == all ]]; then
+		rename 'y/ /_/' *
+	else 
+		rename 'y/ /_/' "$arg1"
+	fi
+}
+complete -W "all <filename>" underscorise
