@@ -1,19 +1,22 @@
 
 # utility
 
-Utility functions to facilitate day-to-day jobs on the command line. 
-All functions follow the following pseudocode:
+Those are utility functions to facilitate day-to-day jobs on the command line. 
+All functions follow the following format:
 
-```Action [Object] [Target]```
+```Action [Target] [Quantity] [Quality] [Destination]```
 
-<ins>Action</ins> is any programmatic verb that defined actions to be executed, 
+<ins>Action</ins> is any verb that defined actions to be executed, 
 such as *get*, *peek* or *replace*. 
 
-<ins>Object</ins>  is any IT object like *file*, *memory* or *connection*.
+<ins>Target</ins>  can be any IT object like *file*, *memory* or *connection*.
 
-<ins>Target</ins>  can be any destination, direction or number like *file* where 
-the pattern is searched, *direction* (back/forth) when applying replacement or 
-output *length* when rendering the desired output. 
+<ins>Quantity</ins> can be any quantifiable output like *length*.
+
+<ins>Quality</ins> can show, for example, *direction* (back/forth) when applying replacement.  
+
+<ins>Destination</ins> can be any destination (such as a *file*) where 
+the pattern is searched.
 
 ## Authors
 Vitali Avagyan: [@vitali87](https://github.com/vitali87)

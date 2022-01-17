@@ -33,21 +33,6 @@ extract () {
   fi
 }
 
-str_seq () {
-  str="$1"
-  n="$2"
-  user_delim="$3"
-  delim=${user_delim:-"_"}
-
-  declare -a out
-
-  for i in $(seq "$n"); do
-    out+=("$str$delim$i")
-    done
-
-  echo "${out[@]}"
-}
-
 peek () {
   default=25
   n=$(xsv headers "$1" | wc -l)
@@ -64,36 +49,43 @@ peek () {
   fi
 }
 
-startup_remove () {
-	sudo update-rc.d -f $1 remove
-}
-
 get () {
 	  arg1="$1"
 	  arg2="$2"
-	
+	  user_n=$arg2
+    arg3="$3"
+
 	if [[ $arg1 == ip_external ]]; then
 		curl ifconfig.me
 	elif [[ $arg1 == cmd_most_often ]]; then
-		history| awk '{a[$2]++}END{for(i in a){print a[i] " " i}}' | sort -rn | head
+		history| awk '{a[$2]++}END{for(i in a){print a[i] " " i}}' | sort -rn | head -n "${user_n:-10}"
 	elif [[ $arg1 == ps_ram ]]; then
-		user_n=$arg2
 		ps aux | sort -nk +4 | tail -n "${user_n:-10}"
 	elif [[ $arg1 == memory ]]; then
 		watch -n 5 -d '/bin/free -m'
 	elif [[ $arg1 == function_loaded ]]; then
 		shopt -s extdebug;declare -F | grep -v "declare -f _" | declare -F $(awk "{print $3}") | column -t;shopt -u extdebug
-	elif [ "$arg1" == email ]; then
+	elif [[ $arg1 == email ]]; then
 	  # Before using this function, create an App password in your google account
-    # And use it instead of your password
-    read -r -p 'Username: ' uservar
-    read -r -sp 'Password: ' passvar
-    curl -u "$uservar":"$passvar" --silent "https://mail.google.com/mail/feed/atom" | tr -d '\n' | awk -F '<entry>' '{for (i=2; i<=NF; i++) {print $i}}' | sed -n "s/<title>\(.*\)<\/title.*name>\(.*\)<\/name>.*/\2 - \1/p"
+	  # And use it instead of your password
+	  read -r -p 'Username: ' uservar
+	  read -r -sp 'Password: ' passvar
+	  curl -u "$uservar":"$passvar" --silent "https://mail.google.com/mail/feed/atom" | tr -d '\n' | awk -F '<entry>' '{for (i=2; i<=NF; i++) {print $i}}' | sed -n "s/<title>\(.*\)<\/title.*name>\(.*\)<\/name>.*/\2 - \1/p"
+	elif [[ $arg1 == distro ]]; then
+	    cat /etc/issue
+	elif [[ $arg1 == line ]]; then
+	    sed -n "$arg2"p "$arg3"
+	elif [[ $arg1 == weather_forecast ]]; then
+	    curl wttr.in/"$arg2"
+	elif [[ $arg1 == directory ]]; then
+	    ls -d /*
+	elif [[ $arg1 == program_on_port ]]; then
+	    lsof -i tcp:"$arg2"
+	elif [[ $arg1 == usage_by_directory ]]; then
+	    du -b --max-depth "${arg2:-1}" | sort -nr | perl -pe 's{([0-9]+)}{sprintf "%.1f%s", $1>=2**30? ($1/2**30, "G"): $1>=2**20? ($1/2**20, "M"): $1>=2**10? ($1/2**10, "K"): ($1, "")}e'
 	fi
 }
-
-complete -W "ip_external cmd_most_often ps_ram memory function_loaded" get
-
+complete -W "ip_external cmd_most_often ps_ram memory function_loaded email line weather_forecast directory program_on_port usage_by_directory" get
 
 remove () {
 	arg1="$1"
@@ -101,9 +93,13 @@ remove () {
 
 	if [[ $arg1 == duplicates ]]; then
 		awk '!x[$0]++' "$2"
+	elif [[ $arg1 == dir && $arg2 == empty ]]; then
+	  find . -type d -empty -delete
+	elif [[ $arg1 == program_at_system_startup ]]; then
+	  sudo update-rc.d -f "$2" remove
 	fi
 }
-complete -W "duplicates" remove
+complete -W "duplicates dir program_at_system_startup" remove
 
 # convert files' spaces into underscores
 underscorise () {
@@ -117,17 +113,17 @@ underscorise () {
 }
 complete -W "all <filename>" underscorise
 
-# simple Calculator
-? () { 
+# simple calculator
+calculate () {
 	echo "$*" | bc -l; 
 }
 
 # single line for creating and entering directory
 mkdircd () {
-	mkdir "$1" && cd $_
+	mkdir "$1" && cd $_ || exit
 }
 
-# convert manula page into pdf
+# convert manual page into pdf
 man2pdf () {
 	man -t "$1" | ps2pdf - "$2".pdf
 }
@@ -139,18 +135,25 @@ generate () {
 	arg2=$2
 	if [[ $arg1 == "passwd" ]]; then
 		strings /dev/urandom | grep -o '[[:alnum:]]' | head -n $arg2 | tr -d '\n'; echo
-	fi
-}
-complete -W "passwd" generate
+	elif [[ $arg1 == "str_seq" ]]; then
+	  str="$2"
+	  n="$3"
+	  user_delim="$4"
+	  delim=${user_delim:-"_"}
 
-# graph various important stuff
-graph () {
-	arg1=$1
-	if [[ $arg1 == "connection" ]]; then
-		netstat -an | grep ESTABLISHED | awk '{print $5}' | awk -F: '{print $1}' | sort | uniq -c | awk '{ printf("%s\t%s\t",$2,$1) ; for (i = 0; i < $1; i++) {printf("*")}; print "" }' 
+    declare -a out
+
+    for i in $(seq "$n"); do
+      out+=("$str$delim$i")
+      done
+
+    echo "${out[@]}"
+  elif [[ $arg1 == "graph" && $arg2 == "connection" ]]; then # graph various important stuff
+		netstat -an | grep ESTABLISHED | awk '{print $5}' | awk -F: '{print $1}' | sort | uniq -c | awk '{ printf("%s\t%s\t",$2,$1) ; for (i = 0; i < $1; i++) {printf("*")}; print "" }'
 	fi
+
 }
-complete -W "connection" graph
+complete -W "passwd str_seq graph" generate
 
 # search what pattern where
 search () {
@@ -163,7 +166,6 @@ complete -W "all <filename>" search
 
 # replace slashes back and forth
 replace () {
-		
 	if [[ "$2" == to_back ]]; then
 		sed -i 's|\/|\\|g' "$1"
 	elif [[ "$2" == to_forth ]]; then
@@ -171,3 +173,11 @@ replace () {
 	fi
 }
 complete -W "to_back to_forth" replace
+
+check () {
+  if [[ "$1" == syntax ]]; then
+    find . -name '*.sh' -exec bash -n {} \;
+  fi
+}
+complete -W "syntax" replace
+
