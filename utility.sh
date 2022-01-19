@@ -83,13 +83,22 @@ get () {
 	    lsof -i tcp:"$arg2"
 	elif [[ $arg1 == usage_by_directory ]]; then
 	    du -b --max-depth "${arg2:-1}" | sort -nr | perl -pe 's{([0-9]+)}{sprintf "%.1f%s", $1>=2**30? ($1/2**30, "G"): $1>=2**20? ($1/2**20, "M"): $1>=2**10? ($1/2**10, "K"): ($1, "")}e'
+	elif [[ $arg1 == files_modified ]]; then
+	    sudo find / -mmin "$2" -type f
+	elif [[ $arg1 == apps_using_internet ]]; then
+	    lsof -P -i -n | cut -f 1 -d " "| uniq | tail -n +2
+ 	elif [[ $arg1 == file_or_directory && "$arg2" == big ]]; then
+	    sudo du -sm *|sort -n|tail
 	fi
 }
-complete -W "ip_external cmd_most_often ps_ram memory function_loaded email line weather_forecast directory program_on_port usage_by_directory" get
+complete -W "ip_external cmd_most_often ps_ram memory function_loaded email line weather_forecast directory program_on_port usage_by_directory files_modified apps_using_internet file_or_directory" get
+
 
 remove () {
 	arg1="$1"
 	arg2="$2"
+	arg3="$3"
+	arg4="$4"
 
 	if [[ $arg1 == duplicates ]]; then
 		awk '!x[$0]++' "$2"
@@ -97,9 +106,14 @@ remove () {
 	  find . -type d -empty -delete
 	elif [[ $arg1 == program_at_system_startup ]]; then
 	  sudo update-rc.d -f "$2" remove
+	elif [[ $arg1 == line && $arg2 == blank ]]; then
+	  grep . "$arg3" > "$arg4"
+	elif [[ $arg1 == line ]]; then
+	  sed -i "$arg2"d "$arg3"
 	fi
 }
-complete -W "duplicates dir program_at_system_startup" remove
+
+complete -W "duplicates dir program_at_system_startup line" remove
 
 # convert files' spaces into underscores
 underscorise () {
@@ -120,7 +134,7 @@ calculate () {
 
 # single line for creating and entering directory
 mkdircd () {
-	mkdir "$1" && cd $_ || exit
+	mkdir "$1" && cd "$_" || exit
 }
 
 # convert manual page into pdf
@@ -134,7 +148,7 @@ generate () {
 	arg1=$1
 	arg2=$2
 	if [[ $arg1 == "passwd" ]]; then
-		strings /dev/urandom | grep -o '[[:alnum:]]' | head -n $arg2 | tr -d '\n'; echo
+		strings /dev/urandom | grep -o '[[:alnum:]]' | head -n "$arg2" | tr -d '\n'; echo
 	elif [[ $arg1 == "str_seq" ]]; then
 	  str="$2"
 	  n="$3"
@@ -177,7 +191,16 @@ complete -W "to_back to_forth" replace
 check () {
   if [[ "$1" == syntax ]]; then
     find . -name '*.sh' -exec bash -n {} \;
+  elif [[ "$1" == ssl_certificate_dates ]]; then
+    echo | openssl s_client -connect "$2":443 2>/dev/null |openssl x509 -dates -noout
   fi
 }
-complete -W "syntax" replace
+complete -W "syntax ssl_certificate_dates" check
 
+leave () {
+  if [[ "$2" == only ]]; then
+    rm -r !("$1")
+  fi
+
+}
+complete -W "syntax ssl_certificate_dates" leave
