@@ -89,6 +89,8 @@ get () {
 	    lsof -P -i -n | cut -f 1 -d " "| uniq | tail -n +2
  	elif [[ $arg1 == file_or_directory && "$arg2" == big ]]; then
 	    sudo du -sm *|sort -n|tail
+ 	elif [[ $arg1 == number_of_lines ]]; then
+	    < "$arg2" wc -l
 	fi
 }
 complete -W "ip_external cmd_most_often ps_ram memory function_loaded email line weather_forecast directory program_on_port usage_by_directory files_modified apps_using_internet file_or_directory" get
