@@ -93,7 +93,10 @@ get () {
 	    < "$arg2" wc -l
 	fi
 }
-complete -W "ip_external cmd_most_often ps_ram memory function_loaded email line weather_forecast directory program_on_port usage_by_directory files_modified apps_using_internet file_or_directory number_of_lines" get
+complete -W "ip_external cmd_most_often ps_ram memory /
+function_loaded email line weather_forecast directory /
+program_on_port usage_by_directory files_modified /
+apps_using_internet file_or_directory" get
 
 
 remove () {
@@ -103,11 +106,11 @@ remove () {
 	arg4="$4"
 
 	if [[ $arg1 == duplicates ]]; then
-		awk '!x[$0]++' "$2"
+		awk '!x[$0]++' "$arg2"
 	elif [[ $arg1 == dir && $arg2 == empty ]]; then
 	  find . -type d -empty -delete
 	elif [[ $arg1 == program_at_system_startup ]]; then
-	  sudo update-rc.d -f "$2" remove
+	  sudo update-rc.d -f $arg2 remove
 	elif [[ $arg1 == line && $arg2 == blank ]]; then
 	  grep . "$arg3" > "$arg4"
 	elif [[ $arg1 == line ]]; then
