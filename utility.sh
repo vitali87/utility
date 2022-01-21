@@ -96,7 +96,7 @@ get () {
 complete -W "ip_external cmd_most_often ps_ram memory /
 function_loaded email line weather_forecast directory /
 program_on_port usage_by_directory files_modified /
-apps_using_internet file_or_directory" get
+apps_using_internet file_or_directory number_of_lines"  get
 
 
 remove () {
