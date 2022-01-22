@@ -114,13 +114,16 @@ get() {
   elif [[ $arg1 == geo_location_from_ip ]]; then
     curl -s get http://ip-api.com/json/"$arg2" \
       | jq 'with_entries(select([.key] | inside(["country", "city", "lat", "lon"])))'
+  elif [[ $arg1 == packages && $arg2 == installed ]]; then
+    dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
   fi
 }
 complete -W "ip_external commands_most_often process_ram memory
 functions_loaded email line weather_forecast directory
 program_on_port usage_by_directory files_modified
 apps_using_internet files_or_directories\ big number_of_lines
-files_opened network_connections permissions\ octal geo_location_from_ip" get
+files_opened network_connections permissions\ octal
+geo_location_from_ip packages\ installed" get
 
 remove() {
   arg1="$1"
@@ -260,3 +263,9 @@ schedule() {
   fi
 }
 complete -W "script_or_command" schedule
+
+drop() {
+  if [[ "$1" == column ]]; then
+    cut -f5 --complement
+  fi
+}
