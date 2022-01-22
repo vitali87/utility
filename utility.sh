@@ -112,8 +112,8 @@ get() {
   elif [[ $arg1 == permissions && "$arg2" == octal ]]; then
     stat -c '%A %a %n' *
   elif [[ $arg1 == geo_location_from_ip ]]; then
-    curl -s get http://ip-api.com/json/"$arg2"|
-    jq 'with_entries(select([.key] | inside(["country", "city", "lat", "lon"])))'
+    curl -s get http://ip-api.com/json/"$arg2" \
+      | jq 'with_entries(select([.key] | inside(["country", "city", "lat", "lon"])))'
   fi
 }
 complete -W "ip_external commands_most_often process_ram memory
@@ -167,11 +167,13 @@ mkdircd() {
 
 # convert x to y
 recast() {
-  if [[ "$1" == man2pdf ]]; then
+  if [[ $1 == man2pdf ]]; then
     man -t "$2" | ps2pdf - "$3".pdf
+  elif [[ $1 == txt2table ]]; then
+    column -tns: "$2"
   fi
 }
-complete -W "man2pdf\ <man_name>\ <pdf_name>" recast
+complete -W "man2pdf\ <man_name>\ <pdf_name> txt2table" recast
 
 # generate random-length passwords etc.
 generate() {
