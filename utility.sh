@@ -273,3 +273,9 @@ drop() {
 }
 complete -W "column row" drop
 
+limit() {
+  if [[ $1 == cpu_for_process ]]; then
+      nice -n "$2" "$3"
+  fi
+}
+complete -W "cpu_for_process" limit
