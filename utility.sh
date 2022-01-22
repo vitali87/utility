@@ -107,13 +107,20 @@ get() {
     wc < "$arg2" -l
   elif [[ $arg1 == files_opened ]]; then
     lsof -c "$arg2"
+  elif [[ $arg1 == network_connections ]]; then
+    netstat -ant | awk '{print $NF}' | grep -v '[a-z]' | sort | uniq -c
+  elif [[ $arg1 == permissions && "$arg2" == octal ]]; then
+    stat -c '%A %a %n' *
+  elif [[ $arg1 == geo_location_from_ip ]]; then
+    curl -s get http://ip-api.com/json/"$arg2"|
+    jq 'with_entries(select([.key] | inside(["country", "city", "lat", "lon"])))'
   fi
 }
 complete -W "ip_external commands_most_often process_ram memory
 functions_loaded email line weather_forecast directory
 program_on_port usage_by_directory files_modified
 apps_using_internet files_or_directories\ big number_of_lines
-files_opened" get
+files_opened network_connections permissions\ octal geo_location_from_ip" get
 
 remove() {
   arg1="$1"
@@ -170,11 +177,11 @@ complete -W "man2pdf\ <man_name>\ <pdf_name>" recast
 generate() {
   arg1=$1
   arg2=$2
-  if [[ $arg1 == "passwd" ]]; then
+  if [[ $arg1 == passwd ]]; then
     strings /dev/urandom | grep -o '[[:alnum:]]' \
       | head -n "$arg2" | tr -d '\n'
     echo
-  elif [[ $arg1 == "str_seq" ]]; then
+  elif [[ $arg1 == str_seq ]]; then
     str="$2"
     n="$3"
     user_delim="$4"
@@ -187,7 +194,7 @@ generate() {
     done
 
     echo "${out[@]}"
-  elif [[ $arg1 == "graph" && $arg2 == "connection" ]]; then # graph various important stuff
+  elif [[ $arg1 == graph && $arg2 == connection ]]; then # graph various important stuff
     netstat -an | grep ESTABLISHED | awk '{print $5}' \
       | awk -F: '{print $1}' | sort | uniq -c \
       | awk '{ printf("%s\t%s\t",$2,$1) ; for (i = 0; i < $1; i++) {printf("*")}; print "" }'
