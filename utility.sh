@@ -217,8 +217,8 @@ search() {
 }
 complete -W "all <filename>" search
 
-# replace slashes back and forth
 replace() {
+  # replace slashes back and forth
   if [[ "$1" == slashes_in_filenames && "$2" == to_back ]]; then
     sed -i 's|\/|\\|g' "$3"
   elif [[ "$1" == slashes_in_filenames && "$2" == to_forth ]]; then
@@ -265,7 +265,11 @@ schedule() {
 complete -W "script_or_command" schedule
 
 drop() {
-  if [[ "$1" == column ]]; then
-    cut -f5 --complement
+  if [[ $1 == column ]]; then
+    cut -d , -f "$2" "$3" --complement > file-new.csv; mv file-new.csv "$3"
+  elif [[ $1 == row ]]; then
+    sed -i "$2d" file.csv
   fi
 }
+complete -W "column row" drop
+

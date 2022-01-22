@@ -11,7 +11,7 @@ such as *get*, *peek* or *replace*.
 
 <ins>Target</ins>  can be any IT object like *file*, *memory* or *connection*.
 
-<ins>Quantity</ins> can be any quantifiable output like *length*.
+<ins>Quantity</ins> can be any quantifiable output like *5*.
 
 <ins>Quality</ins> can show, for example, *direction* (back/forth) when applying replacement.  
 
