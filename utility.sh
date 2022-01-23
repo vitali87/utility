@@ -61,8 +61,10 @@ get() {
   user_n=$arg2
   arg3="$3"
 
-  if [[ $arg1 == ip_external ]]; then
+  if [[ $arg1 == ip && $arg2 == external ]]; then
     curl ifconfig.me
+  elif [[ $arg1 == ip && $arg2 == connected ]]; then
+    netstat -lantp | grep ESTABLISHED | awk '{print $5}' | awk -F: '{print $1}' | sort -u
   elif [[ $arg1 == commands_most_often ]]; then
     history | awk '{a[$2]++}END{for(i in a){print a[i] " " i}}' \
       | sort -rn | head -n "${user_n:-10}"
@@ -128,12 +130,19 @@ _get_completions() {
   local cur
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
-  COMPREPLY=($(compgen -W "ip_external commands_most_often process_ram memory
-functions_loaded email line weather_forecast directory
-program_on_port usage_by_directory files_modified
-apps_using_internet files_or_directories\ big number_of_lines
-files_opened network_connections permissions\ octal
-geo_location_from_ip packages\ installed $cur_dir" -- $cur))
+
+  ip_external="ip\ external"
+  ip_connected="ip\ connected"
+  packages_installed="packages installed"
+  files_or_directories_big="files_or_directories big"
+  permissions_octal="permissions octal"
+
+  mapfile -t COMPREPLY < <(compgen -W "$ip_external external $ip_connected
+  connected commands_most_often process_ram memory functions_loaded email
+  line weather_forecast directory program_on_port usage_by_directory
+  files_modified apps_using_internet $files_or_directories_big number_of_lines
+  files_opened network_connections $permissions_octal geo_location_from_ip
+  $packages_installed $cur_dir" -- $cur)
 }
 complete -F _get_completions get
 
@@ -156,7 +165,6 @@ remove() {
   fi
 }
 _remove_completions() {
-  # Cannot use ls as it can be aliased to ls -lrta
   cur_dir=$(
     FILES=(*)
     for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
@@ -164,7 +172,11 @@ _remove_completions() {
   local cur
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
-  COMPREPLY=($(compgen -W "duplicates dir\ empty program_at_system_startup lines\ blank lines $cur_dir" -- $cur))
+
+  dir_empty="dir\ empty"
+  lines_blank="lines\ blank"
+
+  mapfile -t COMPREPLY < <(compgen -W "duplicates $dir_empty program_at_system_startup $lines_blank lines $cur_dir" -- $cur)
 }
 complete -F _remove_completions remove
 
@@ -191,7 +203,6 @@ recast() {
   fi
 }
 _recast_completions() {
-  # Cannot use ls as it can be aliased to ls -lrta
   cur_dir=$(
     FILES=(*)
     for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
@@ -199,7 +210,10 @@ _recast_completions() {
   local cur
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
-  COMPREPLY=($(compgen -W "man2pdf\ <man_name>\ <pdf_name> txt2table space2_ $cur_dir" -- $cur))
+
+  man2pdf="man2pdf\ <man_name>\ <pdf_name>"
+
+  mapfile -t COMPREPLY < <(compgen -W "$man2pdf txt2table space2_ $cur_dir" -- $cur)
 }
 complete -F _recast_completions recast
 
@@ -231,7 +245,16 @@ generate() {
   fi
 
 }
-complete -W "passwd str_seq graph\ connection" generate
+_generate_completions() {
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+
+  graph="graph\ connection"
+
+  mapfile -t COMPREPLY < <(compgen -W "passwd str_seq $graph" -- $cur)
+}
+complete -F _generate_completions generate
 
 # search what pattern where
 search() {
@@ -249,7 +272,8 @@ _search_completions() {
   local cur
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
-  COMPREPLY=($(compgen -W "$cur_dir" -- $cur))
+
+  mapfile -t COMPREPLY < <(compgen -W "$cur_dir" -- $cur)
 }
 complete -F _search_completions search
 
@@ -264,7 +288,6 @@ replace() {
   fi
 }
 _replace_completions() {
-  # Cannot use ls as it can be aliased to ls -lrta
   cur_dir=$(
     FILES=(*)
     for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
@@ -272,7 +295,11 @@ _replace_completions() {
   local cur
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
-  COMPREPLY=($(compgen -W "slashes_in_filenames\ to_back slashes_in_filenames\ to_forth string_in_files $cur_dir" -- $cur))
+
+  slashes_back="slashes_in_filenames\ to_back"
+  slashes_forth="slashes_in_filenames\ to_forth"
+
+  mapfile -t COMPREPLY < <(compgen -W "$slashes_back $slashes_forth string_in_files $cur_dir" -- $cur)
 }
 complete -F _replace_completions replace
 
@@ -318,7 +345,8 @@ _schedule_completions() {
   local cur
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
-  COMPREPLY=($(compgen -W "script_or_command $cur_dir" -- $cur))
+
+  mapfile -t COMPREPLY < <(compgen -W "script_or_command $cur_dir" -- $cur)
 }
 complete -F _schedule_completions schedule
 
@@ -339,7 +367,8 @@ _drop_completions() {
   local cur
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
-  COMPREPLY=($(compgen -W "column row $cur_dir" -- $cur))
+
+  mapfile -t COMPREPLY < <(compgen -W "column row $cur_dir" -- $cur)
 }
 complete -F _drop_completions drop
 
