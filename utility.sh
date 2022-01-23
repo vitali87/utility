@@ -118,12 +118,24 @@ get() {
     dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
   fi
 }
-complete -W "ip_external commands_most_often process_ram memory
+
+_get_completions() {
+  # Cannot use ls as it can be aliased to ls -lrta
+  cur_dir=$(
+    FILES=(*)
+    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
+  )
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=($(compgen -W "ip_external commands_most_often process_ram memory
 functions_loaded email line weather_forecast directory
 program_on_port usage_by_directory files_modified
 apps_using_internet files_or_directories\ big number_of_lines
 files_opened network_connections permissions\ octal
-geo_location_from_ip packages\ installed" get
+geo_location_from_ip packages\ installed $cur_dir" -- $cur))
+}
+complete -F _get_completions get
 
 remove() {
   arg1="$1"
@@ -143,20 +155,18 @@ remove() {
     sed -i "$arg2"d "$arg3"
   fi
 }
-
-complete -W "duplicates dir\ empty program_at_system_startup lines\ blank lines" remove
-
-# convert files' spaces into underscores
-underscorise() {
-  arg1=$1
-
-  if [[ $arg1 == all ]]; then
-    rename 'y/ /_/' *
-  else
-    rename 'y/ /_/' "$arg1"
-  fi
+_remove_completions() {
+  # Cannot use ls as it can be aliased to ls -lrta
+  cur_dir=$(
+    FILES=(*)
+    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
+  )
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=($(compgen -W "duplicates dir\ empty program_at_system_startup lines\ blank lines $cur_dir" -- $cur))
 }
-complete -W "all <file\ name>" underscorise
+complete -F _remove_completions remove
 
 # simple calculator
 calculate() {
@@ -174,9 +184,24 @@ recast() {
     man -t "$2" | ps2pdf - "$3".pdf
   elif [[ $1 == txt2table ]]; then
     column -tns: "$2"
+  elif [[ $1 == space2_ && $# -eq 1 ]]; then # convert all files' spaces into underscores
+    rename 'y/ /_/' -- *
+  elif [[ $1 == space2_ && $# -eq 2 ]]; then # convert one file's spaces into underscores
+    rename 'y/ /_/' "$2"
   fi
 }
-complete -W "man2pdf\ <man_name>\ <pdf_name> txt2table" recast
+_recast_completions() {
+  # Cannot use ls as it can be aliased to ls -lrta
+  cur_dir=$(
+    FILES=(*)
+    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
+  )
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=($(compgen -W "man2pdf\ <man_name>\ <pdf_name> txt2table space2_ $cur_dir" -- $cur))
+}
+complete -F _recast_completions recast
 
 # generate random-length passwords etc.
 generate() {
@@ -215,7 +240,18 @@ search() {
 
   grep -RnisI "$arg1" "$arg2"
 }
-complete -W "all <filename>" search
+_search_completions() {
+  # Cannot use ls as it can be aliased to ls -lrta
+  cur_dir=$(
+    FILES=(*)
+    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
+  )
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=($(compgen -W "$cur_dir" -- $cur))
+}
+complete -F _search_completions search
 
 replace() {
   # replace slashes back and forth
@@ -227,7 +263,18 @@ replace() {
     grep -rl "$2" "$4" | xargs sed -i -e "s/$2/$3/"
   fi
 }
-complete -W "slashes_in_filenames\ to_back slashes_in_filenames\ to_forth string_in_files" replace
+_replace_completions() {
+  # Cannot use ls as it can be aliased to ls -lrta
+  cur_dir=$(
+    FILES=(*)
+    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
+  )
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=($(compgen -W "slashes_in_filenames\ to_back slashes_in_filenames\ to_forth string_in_files $cur_dir" -- $cur))
+}
+complete -F _replace_completions replace
 
 check() {
   if [[ "$1" == syntax ]]; then
@@ -244,11 +291,11 @@ leave() {
     rm -r !("$1")
   fi
 }
-complete -W "only" leave
+complete -W "only $cur_dir" leave
 
 compress() {
   if [[ "$1" == working_directory ]]; then
-    tar -cf - . | pv -s $(du -sb . | awk '{print $1}') \
+    tar -cf - . | pv -s "$(du -sb . | awk '{print $1}')" \
       | tar -xvf $1 > out.tar.gz
   fi
 }
@@ -262,20 +309,43 @@ schedule() {
     ) &)
   fi
 }
-complete -W "script_or_command" schedule
+_schedule_completions() {
+  # Cannot use ls as it can be aliased to ls -lrta
+  cur_dir=$(
+    FILES=(*)
+    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
+  )
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=($(compgen -W "script_or_command $cur_dir" -- $cur))
+}
+complete -F _schedule_completions schedule
 
 drop() {
   if [[ $1 == column ]]; then
-    cut -d , -f "$2" "$3" --complement > file-new.csv; mv file-new.csv "$3"
+    cut -d , -f "$2" "$3" --complement > file-new.csv
+    mv file-new.csv "$3"
   elif [[ $1 == row ]]; then
     sed -i "$2d" file.csv
   fi
 }
-complete -W "column row" drop
+_drop_completions() {
+  # Cannot use ls as it can be aliased to ls -lrta
+  cur_dir=$(
+    FILES=(*)
+    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
+  )
+  local cur
+  COMPREPLY=()
+  cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=($(compgen -W "column row $cur_dir" -- $cur))
+}
+complete -F _drop_completions drop
 
 limit() {
   if [[ $1 == cpu_for_process ]]; then
-      nice -n "$2" "$3"
+    nice -n "$2" "$3"
   fi
 }
 complete -W "cpu_for_process" limit
