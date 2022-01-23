@@ -120,7 +120,6 @@ get() {
     dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
   fi
 }
-
 _get_completions() {
   # Cannot use ls as it can be aliased to ls -lrta
   cur_dir=$(
@@ -154,7 +153,7 @@ remove() {
 
   if [[ $arg1 == duplicates ]]; then
     awk '!x[$0]++' "$arg2"
-  elif [[ $arg1 == dir && $arg2 == empty ]]; then
+  elif [[ $arg1 == dirs && $arg2 == empty ]]; then
     find . -type d -empty -delete
   elif [[ $arg1 == program_at_system_startup ]]; then
     sudo update-rc.d -f $arg2 remove
@@ -173,10 +172,13 @@ _remove_completions() {
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
 
-  dir_empty="dir\ empty"
-  lines_blank="lines\ blank"
+  dirs_empty="dirs\ empty"
+  lines_blank="lines\ blank\ <old-filename>\ <new-filename>"
+  duplicates="duplicates\ <file>"
+  program_at_system_startup="program_at_system_startup\ <program>"
+  lines="lines\ <line-number>\ <filename>"
 
-  mapfile -t COMPREPLY < <(compgen -W "duplicates $dir_empty program_at_system_startup $lines_blank lines $cur_dir" -- $cur)
+  mapfile -t COMPREPLY < <(compgen -W "$duplicates $dirs_empty empty $program_at_system_startup $lines_blank blank $lines $cur_dir" -- $cur)
 }
 complete -F _remove_completions remove
 
@@ -212,8 +214,10 @@ _recast_completions() {
   cur=${COMP_WORDS[COMP_CWORD]}
 
   man2pdf="man2pdf\ <man_name>\ <pdf_name>"
+  txt2table="txt2table\ <txt-file>"
+  space2_="space2_\ [<file>]"
 
-  mapfile -t COMPREPLY < <(compgen -W "$man2pdf txt2table space2_ $cur_dir" -- $cur)
+  mapfile -t COMPREPLY < <(compgen -W "$man2pdf $txt2table $space2_ $cur_dir" -- $cur)
 }
 complete -F _recast_completions recast
 
@@ -225,7 +229,7 @@ generate() {
     strings /dev/urandom | grep -o '[[:alnum:]]' \
       | head -n "$arg2" | tr -d '\n'
     echo
-  elif [[ $arg1 == str_seq ]]; then
+  elif [[ $arg1 == str_num_seq ]]; then
     str="$2"
     n="$3"
     user_delim="$4"
@@ -251,8 +255,10 @@ _generate_completions() {
   cur=${COMP_WORDS[COMP_CWORD]}
 
   graph="graph\ connection"
+  str_num_seq="str_num_seq\ <str>\ <number>"
+  passwd="passwd\ <length>"
 
-  mapfile -t COMPREPLY < <(compgen -W "passwd str_seq $graph" -- $cur)
+  mapfile -t COMPREPLY < <(compgen -W "$passwd $str_num_seq $graph" -- $cur)
 }
 complete -F _generate_completions generate
 
@@ -278,9 +284,10 @@ _search_completions() {
 complete -F _search_completions search
 
 replace() {
-  # replace slashes back and forth
+  # replace slashes back
   if [[ "$1" == slashes_in_filenames && "$2" == to_back ]]; then
     sed -i 's|\/|\\|g' "$3"
+  # replace slashes forth
   elif [[ "$1" == slashes_in_filenames && "$2" == to_forth ]]; then
     sed -i 's|\\|\/|g' "$3"
   elif [[ "$1" == string_in_files ]]; then
@@ -298,8 +305,9 @@ _replace_completions() {
 
   slashes_back="slashes_in_filenames\ to_back"
   slashes_forth="slashes_in_filenames\ to_forth"
+  string_in_files="string_in_files\ <old-string>\ <new-string>\ <files>"
 
-  mapfile -t COMPREPLY < <(compgen -W "$slashes_back $slashes_forth string_in_files $cur_dir" -- $cur)
+  mapfile -t COMPREPLY < <(compgen -W "$slashes_back $slashes_forth $string_in_files $cur_dir" -- $cur)
 }
 complete -F _replace_completions replace
 
@@ -311,6 +319,7 @@ check() {
       | openssl x509 -dates -noout
   fi
 }
+ssl_certificate_dates="ssl_certificate_dates\ <website-name>"
 complete -W "syntax ssl_certificate_dates" check
 
 leave() {
@@ -337,7 +346,6 @@ schedule() {
   fi
 }
 _schedule_completions() {
-  # Cannot use ls as it can be aliased to ls -lrta
   cur_dir=$(
     FILES=(*)
     for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
@@ -359,7 +367,6 @@ drop() {
   fi
 }
 _drop_completions() {
-  # Cannot use ls as it can be aliased to ls -lrta
   cur_dir=$(
     FILES=(*)
     for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
@@ -377,4 +384,5 @@ limit() {
     nice -n "$2" "$3"
   fi
 }
-complete -W "cpu_for_process" limit
+cpu_for_process="cpu_for_process\ <percent>\ <process>"
+complete -W "$cpu_for_process" limit
