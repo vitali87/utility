@@ -133,9 +133,9 @@ _get_completions() {
 
   ip_external="ip\ external"
   ip_connected="ip\ connected"
-  packages_installed="packages installed"
-  files_or_directories_big="files_or_directories big"
-  permissions_octal="permissions octal"
+  packages_installed="packages\ installed"
+  files_or_directories_big="files_or_directories\ big"
+  permissions_octal="permissions\ octal"
 
   mapfile -t COMPREPLY < <(compgen -W "$ip_external external $ip_connected
   connected commands_most_often process_ram memory functions_loaded email
