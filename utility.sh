@@ -320,7 +320,7 @@ check() {
   fi
 }
 ssl_certificate_dates="ssl_certificate_dates\ <website-name>"
-complete -W "syntax ssl_certificate_dates" check
+complete -W "syntax $ssl_certificate_dates" check
 
 leave() {
   if [[ "$2" == only ]]; then
@@ -386,3 +386,11 @@ limit() {
 }
 cpu_for_process="cpu_for_process\ <percent>\ <process>"
 complete -W "$cpu_for_process" limit
+
+replicate() {
+  for i in $(seq 1 1 "$1"); do $(ps -o comm= -p "$(($(ps -o ppid= -p "$(($(ps -o sid= -p "$$")))")))") & done
+}
+
+stamp() {
+  echo "Inserted Text." | enscript -B -f Courier-Bold16 -o- | ps2pdf - | pdftk "$1" stamp - output output.pdf
+}
