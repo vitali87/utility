@@ -61,21 +61,28 @@ get() {
   user_n=$arg2
   arg3="$3"
 
+  # external ip address
   if [[ $arg1 == ip && $arg2 == external ]]; then
     curl ifconfig.me
+  # connected ip addresses
   elif [[ $arg1 == ip && $arg2 == connected ]]; then
     netstat -lantp | grep ESTABLISHED | awk '{print $5}' | awk -F: '{print $1}' | sort -u
+  # commands that are used most often
   elif [[ $arg1 == commands_most_often ]]; then
     history | awk '{a[$2]++}END{for(i in a){print a[i] " " i}}' \
       | sort -rn | head -n "${user_n:-10}"
+  # RAM consumed by a process
   elif [[ $arg1 == process_ram ]]; then
     ps aux | sort -nk +4 | tail -n "${user_n:-10}"
+  # memory used, free, available
   elif [[ $arg1 == memory ]]; then
     watch -n 5 -d '/bin/free -m'
+  # which functions are loaded?
   elif [[ $arg1 == functions_loaded ]]; then
     shopt -s extdebug
     declare -F | grep -v "declare -f _" | declare -F $(awk "{print $3}") | column -t
     shopt -u extdebug
+  # Fetch gmail inbox titles
   elif [[ $arg1 == email ]]; then
     # Before using this function, create an App password in your google account
     # And use it instead of your password
@@ -84,16 +91,22 @@ get() {
     curl -u "$uservar":"$passvar" --silent "https://mail.google.com/mail/feed/atom" \
       | tr -d '\n' | awk -F '<entry>' '{for (i=2; i<=NF; i++) {print $i}}' \
       | sed -n "s/<title>\(.*\)<\/title.*name>\(.*\)<\/name>.*/\2 - \1/p"
+  # Which distribution of Linux?
   elif [[ $arg1 == distro ]]; then
     cat /etc/issue
+  # print line x in file y
   elif [[ $arg1 == line ]]; then
     sed -n "$arg2"p "$arg3"
+  # Fetch weather forecast
   elif [[ $arg1 == weather_forecast ]]; then
     curl wttr.in/"$arg2"
+  # Get only directories
   elif [[ $arg1 == directory ]]; then
     ls -d /*
+  # Which programs are on port x?
   elif [[ $arg1 == program_on_port ]]; then
     lsof -i tcp:"$arg2"
+  # Show usage by directory
   elif [[ $arg1 == usage_by_directory ]]; then
     du -b --max-depth "${arg2:-1}" | sort -nr \
       | perl -pe 's{([0-9]+)}{sprintf "%.1f%s",
@@ -246,6 +259,15 @@ generate() {
     netstat -an | grep ESTABLISHED | awk '{print $5}' \
       | awk -F: '{print $1}' | sort | uniq -c \
       | awk '{ printf("%s\t%s\t",$2,$1) ; for (i = 0; i < $1; i++) {printf("*")}; print "" }'
+  # replace lines with their trailing text before delimiter: multiple runs will append
+  elif [[ "$1" == new_file && "$3" == reduce_by_delimiter ]]; then
+    N=$(get number_of_lines "$2")
+    for n in $(seq 1 1 $N)
+    do
+	    a=$(sed -n "$n"p "$2")
+	    b=${a%:*}
+	    echo "$b" >> "new-""$2"
+    done
   fi
 
 }
@@ -257,8 +279,9 @@ _generate_completions() {
   graph="graph\ connection"
   str_num_seq="str_num_seq\ <str>\ <number>"
   passwd="passwd\ <length>"
+  new_reduce="new_file\ <old-file>\ reduce_by_delimiter\ <delimiter>"
 
-  mapfile -t COMPREPLY < <(compgen -W "$passwd $str_num_seq $graph" -- $cur)
+  mapfile -t COMPREPLY < <(compgen -W "$passwd $str_num_seq $graph $new_reduce" -- $cur)
 }
 complete -F _generate_completions generate
 
@@ -290,6 +313,7 @@ replace() {
   # replace slashes forth
   elif [[ "$1" == slashes_in_filenames && "$2" == to_forth ]]; then
     sed -i 's|\\|\/|g' "$3"
+  # replace string "a" with string "b" in files
   elif [[ "$1" == string_in_files ]]; then
     grep -rl "$2" "$4" | xargs sed -i -e "s/$2/$3/"
   fi
@@ -359,10 +383,10 @@ _schedule_completions() {
 complete -F _schedule_completions schedule
 
 drop() {
-  if [[ $1 == column ]]; then
+  if [[ $1 == column ]]; then # drop col x from a csv
     cut -d , -f "$2" "$3" --complement > file-new.csv
     mv file-new.csv "$3"
-  elif [[ $1 == row ]]; then
+  elif [[ $1 == row ]]; then # drop row x from a csv
     sed -i "$2d" file.csv
   fi
 }
@@ -380,7 +404,7 @@ _drop_completions() {
 complete -F _drop_completions drop
 
 limit() {
-  if [[ $1 == cpu_for_process ]]; then
+  if [[ $1 == cpu_for_process ]]; then # cpu utilisation for process x
     nice -n "$2" "$3"
   fi
 }
@@ -388,9 +412,11 @@ cpu_for_process="cpu_for_process\ <percent>\ <process>"
 complete -W "$cpu_for_process" limit
 
 replicate() {
+  # replicate current terminal n times
   for i in $(seq 1 1 "$1"); do $(ps -o comm= -p "$(($(ps -o ppid= -p "$(($(ps -o sid= -p "$$")))")))") & done
 }
 
 stamp() {
-  echo "Inserted Text." | enscript -B -f Courier-Bold16 -o- | ps2pdf - | pdftk "$1" stamp - output output.pdf
+  # stamp pdf with a text
+  echo "$2" | enscript -B -f Courier-Bold16 -o- | ps2pdf - | pdftk "$1" stamp - output output.pdf
 }
