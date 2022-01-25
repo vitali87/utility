@@ -68,6 +68,9 @@ get() {
   # external ip address
   if [[ $arg1 == ip && $arg2 == external ]]; then
     curl ifconfig.me
+  # internal ip address
+  elif [[ $arg1 == ip && $arg2 == external ]]; then
+    hostname -I | awk '{print $1}'
   # connected ip addresses
   elif [[ $arg1 == ip && $arg2 == connected ]]; then
     netstat -lantp | grep ESTABLISHED | awk '{print $5}' | awk -F: '{print $1}' | sort -u
