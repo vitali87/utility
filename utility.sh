@@ -1,6 +1,6 @@
 #!/bin/bash
 
-formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar)
+formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar .7z)
 extract() {
   if
     [[ "$1" == *"${formats[0]}" ]] \
@@ -34,6 +34,10 @@ extract() {
     [[ "$1" == *"${formats[13]}" ]]
   then
     rar x "$1" "$2"
+  elif
+    [[ "$1" == *"${formats[14]}" ]]
+  then
+    7z x "$1" "-o$2"
   else
     echo "Please specify a correct archive format: \"${formats[*]}\""
   fi
