@@ -138,6 +138,10 @@ get() {
       | jq 'with_entries(select([.key] | inside(["country", "city", "lat", "lon"])))'
   elif [[ $arg1 == packages && $arg2 == installed ]]; then
     dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
+  elif [[ $arg1 == users && $arg2 == name ]]; then
+    awk -F: '{ print $1}' /etc/passwd
+  elif [[ $arg1 == users && $arg2 == list ]]; then
+    less /etc/passwd
   fi
 }
 _get_completions() {
