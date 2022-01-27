@@ -143,7 +143,7 @@ get() {
   elif [[ $arg1 == users ]]; then
     less /etc/passwd
   elif [[ $arg1 == column_frequency ]]; then
-    less xsv frequency -s "$2" "$3" | xsv table
+    xsv frequency -s "$2" "$3" | xsv table
   fi
 }
 _get_completions() {
@@ -162,7 +162,7 @@ _get_completions() {
   files_or_directories_big="files_or_directories\ big"
   permissions_octal="permissions\ octal"
   users_name="users\ name"
-  column_frequency="column_frequency\ <column-name> <file>"
+  column_frequency="column_frequency\ <column-name>\ <file>"
 
   mapfile -t COMPREPLY < <(compgen -W "$ip_external external $ip_connected
   connected commands_most_often process_ram memory functions_loaded email
