@@ -140,7 +140,7 @@ get() {
     dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
   elif [[ $arg1 == users && $arg2 == name ]]; then
     awk -F: '{ print $1}' /etc/passwd
-  elif [[ $arg1 == users && $arg2 == list ]]; then
+  elif [[ $arg1 == users ]]; then
     less /etc/passwd
   fi
 }
@@ -159,13 +159,14 @@ _get_completions() {
   packages_installed="packages\ installed"
   files_or_directories_big="files_or_directories\ big"
   permissions_octal="permissions\ octal"
+  users_name="users\ name"
 
   mapfile -t COMPREPLY < <(compgen -W "$ip_external external $ip_connected
   connected commands_most_often process_ram memory functions_loaded email
   line weather_forecast directory program_on_port usage_by_directory
   files_modified apps_using_internet $files_or_directories_big number_of_lines
   files_opened network_connections $permissions_octal geo_location_from_ip
-  $packages_installed $cur_dir" -- $cur)
+  $packages_installed $users_name users $cur_dir" -- $cur)
 }
 complete -F _get_completions get
 
@@ -245,8 +246,8 @@ _recast_completions() {
 }
 complete -F _recast_completions recast
 
-# generate random-length passwords etc.
-generate() {
+# create random-length passwords etc.
+create() {
   arg1=$1
   arg2=$2
   if [[ $arg1 == passwd ]]; then
@@ -279,10 +280,11 @@ generate() {
 	    b=${a%:*}
 	    echo "$b" >> "new-""$2"
     done
+  elif [[ "$1" == user ]]; then
+    sudo useradd "$2"
   fi
-
 }
-_generate_completions() {
+_create_completions() {
   local cur
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
@@ -291,10 +293,11 @@ _generate_completions() {
   str_num_seq="str_num_seq\ <str>\ <number>"
   passwd="passwd\ <length>"
   new_reduce="new_file\ <old-file>\ reduce_by_delimiter\ <delimiter>"
+  user_add="user\ <name>"
 
-  mapfile -t COMPREPLY < <(compgen -W "$passwd $str_num_seq $graph $new_reduce" -- $cur)
+  mapfile -t COMPREPLY < <(compgen -W "$passwd $str_num_seq $graph $new_reduce $user_add" -- $cur)
 }
-complete -F _generate_completions generate
+complete -F _create_completions create
 
 # search what pattern where
 search() {
@@ -393,15 +396,17 @@ _schedule_completions() {
 }
 complete -F _schedule_completions schedule
 
-drop() {
+delete() {
   if [[ $1 == column ]]; then # drop col x from a csv
     cut -d , -f "$2" "$3" --complement > file-new.csv
     mv file-new.csv "$3"
   elif [[ $1 == row ]]; then # drop row x from a csv
     sed -i "$2d" file.csv
+  elif [[ $1 == user ]]; then # drop row x from a csv
+    sudo deluser "$2" # Only root may remove a user or group from the system
   fi
 }
-_drop_completions() {
+_delete_completions() {
   cur_dir=$(
     FILES=(*)
     for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
@@ -410,9 +415,11 @@ _drop_completions() {
   COMPREPLY=()
   cur=${COMP_WORDS[COMP_CWORD]}
 
-  mapfile -t COMPREPLY < <(compgen -W "column row $cur_dir" -- $cur)
+  user_name="user <name>"
+
+  mapfile -t COMPREPLY < <(compgen -W "column row $user_name $cur_dir" -- $cur)
 }
-complete -F _drop_completions drop
+complete -F _delete_completions delete
 
 limit() {
   if [[ $1 == cpu_for_process ]]; then # cpu utilisation for process x
