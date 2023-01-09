@@ -69,7 +69,7 @@ get() {
   if [[ $arg1 == ip && $arg2 == external ]]; then
     curl ifconfig.me
   # internal ip address
-  elif [[ $arg1 == ip && $arg2 == external ]]; then
+  elif [[ $arg1 == ip && $arg2 == internal ]]; then
     hostname -I | awk '{print $1}'
   # connected ip addresses
   elif [[ $arg1 == ip && $arg2 == connected ]]; then
