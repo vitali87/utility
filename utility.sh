@@ -144,6 +144,9 @@ get() {
     less /etc/passwd
   elif [[ $arg1 == column_frequency ]]; then
     xsv frequency -s "$2" "$3" | xsv table
+    # external ip address
+  elif [[ $arg1 == speed && $arg2 == download ]]; then
+    which speedtest-cli || pip install speedtest-cli && speedtest-cli
   fi
 }
 _get_completions() {
