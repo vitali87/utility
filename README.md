@@ -33,14 +33,13 @@ Put ```utility.sh``` file into a location of your choice, e.g. into
 ```commandline
 source ~/Documents/utility/utility.sh
 ```
+Note: if you are using `zsh` shell, then add these two lines (bash completion script compatibility mode) before sourcing the `.sh` file:
 
-Note: if you are using `zsh` shell, then add this compatibility commands before sourcing `.zsh` file.
 ```commandline
 autoload bashcompinit
 bashcompinit
 source ~/Documents/utility/utility.sh
 ```
-
 ## Usage/Examples
 
 Navigate to the desired folder (or alternatively specify the full path) containing the archive file - thunderbird in this example - and execute the following command:
