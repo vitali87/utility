@@ -180,3 +180,8 @@ TBC
 
 For support, email **eheva87@gmail.com** or send a message to my [LinkedIn](https://www.linkedin.com/in/vitali-avagyan-a1566234/)
 
+## Support my work
+
+If you find this project helpful and would like to support my work, you can buy me a coffee:
+
+<a href="https://www.buymeacoffee.com/vitali87" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
