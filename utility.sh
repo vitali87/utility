@@ -2,6 +2,7 @@
 
 formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar .7z)
 extract() {
+  second=${2:-"."}
   if
     [[ "$1" == *"${formats[0]}" ]] \
       || [[ "$1" == *"${formats[1]}" ]] \
@@ -9,7 +10,7 @@ extract() {
       || [[ "$1" == *"${formats[3]}" ]] \
       || [[ "$1" == *"${formats[4]}" ]]
   then
-    tar -xvf "$1" -C "$2"
+    tar -xvf "$1" -C "$second"
   elif
     [[ "$1" == *"${formats[5]}" ]] \
       || [[ "$1" == *"${formats[6]}" ]] \
@@ -20,24 +21,24 @@ extract() {
   elif
     [[ "$1" == *"${formats[9]}" ]]
   then
-    gunzip "$1" -c > "$2"
+    gunzip "$1" -c > "$second"
   elif
     [[ "$1" == *"${formats[10]}" ]] \
       || [[ "$1" == *"${formats[11]}" ]]
   then
-    unzip "$1" -d "$2"
+    unzip "$1" -d "$second"
   elif
     [[ "$1" == *"${formats[12]}" ]]
   then
-    zcat "$1" | tar -xvf - -C "$2"
+    zcat "$1" | tar -xvf - -C "$second"
   elif
     [[ "$1" == *"${formats[13]}" ]]
   then
-    rar x "$1" "$2"
+    rar x "$1" "$second"
   elif
     [[ "$1" == *"${formats[14]}" ]]
   then
-    7z x "$1" "-o$2"
+    7z x "$1" "-o$second"
   else
     echo "Please specify a correct archive format: \"${formats[*]}\""
   fi
