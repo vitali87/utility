@@ -1,6 +1,6 @@
 #!/bin/bash
 
-formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar .7z)
+formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar .7z .tar.lzma .xz .lzma)
 extract() {
   second=${2:-"."}
   if
@@ -39,6 +39,18 @@ extract() {
     [[ "$1" == *"${formats[14]}" ]]
   then
     7z x "$1" "-o$second"
+  elif
+    [[ "$1" == *"${formats[15]}" ]]
+  then
+        tar -xf "$1" -C "$second" --lzma
+  elif
+    [[ "$1" == *"${formats[16]}" ]]
+  then
+    unxz "$1" -C "$second"
+  elif
+    [[ "$1" == *"${formats[17]}" ]]
+  then
+    unlzma "$1" -C "$second"
   else
     echo "Please specify a correct archive format: \"${formats[*]}\""
   fi
