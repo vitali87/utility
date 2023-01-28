@@ -1,6 +1,6 @@
 #!/bin/bash
 
-formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar .7z)
+formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar .7z .tar.lzma .xz .lzma)
 extract() {
   second=${2:-"."}
   if
@@ -39,6 +39,18 @@ extract() {
     [[ "$1" == *"${formats[14]}" ]]
   then
     7z x "$1" "-o$second"
+  elif
+    [[ "$1" == *"${formats[15]}" ]]
+  then
+        tar -xf "$1" -C "$second" --lzma
+  elif
+    [[ "$1" == *"${formats[16]}" ]]
+  then
+    unxz "$1" -C "$second"
+  elif
+    [[ "$1" == *"${formats[17]}" ]]
+  then
+    unlzma "$1" -C "$second"
   else
     echo "Please specify a correct archive format: \"${formats[*]}\""
   fi
@@ -145,9 +157,16 @@ get() {
     less /etc/passwd
   elif [[ $arg1 == column_frequency ]]; then
     xsv frequency -s "$2" "$3" | xsv table
-    # external ip address
   elif [[ $arg1 == speed && ($arg2 == download || $arg2 == upload || -z $arg2) ]]; then
     which speedtest-cli || pip install speedtest-cli && speedtest-cli
+  elif [[ $arg1 == cpu ]]; then
+    lscpu
+  elif [[ $arg1 == memory ]]; then
+    free -h
+  elif [[ $arg1 == disk ]]; then
+    lsblk -o NAME,SIZE,TYPE,MOUNTPOINT
+  elif [[ $arg1 == network ]]; then
+    ifconfig -a
   fi
 }
 _get_completions() {
@@ -444,4 +463,14 @@ replicate() {
 stamp() {
   # stamp pdf with a text
   echo "$2" | enscript -B -f Courier-Bold16 -o- | ps2pdf - | pdftk "$1" stamp - output output.pdf
+}
+
+set() {
+  # setting utility from the terminal
+  if [[ "$1" == brightness && "$2" -ge 0 && "$2" -le 100 ]];
+  then
+    echo $(( "$2" * 12000 / 100 )) | sudo tee /sys/class/backlight/intel_backlight/brightness
+  else
+    echo "Invalid brightness level. Please enter a value between 0 and 100."
+  fi
 }
