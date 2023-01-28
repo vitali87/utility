@@ -474,3 +474,20 @@ set() {
     echo "Invalid brightness level. Please enter a value between 0 and 100."
   fi
 }
+_set() {
+    local cur prev opts
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
+    opts="brightness"
+
+    case "${prev}" in
+        set)
+            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+            return 0
+            ;;
+        brightness)
+            return 0
+            ;;
+    esac
+}
+complete -F _set set
