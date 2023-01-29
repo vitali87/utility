@@ -465,29 +465,25 @@ stamp() {
   echo "$2" | enscript -B -f Courier-Bold16 -o- | ps2pdf - | pdftk "$1" stamp - output output.pdf
 }
 
-set() {
+function modify() {
   # setting utility from the terminal
-  if [[ "$1" == brightness && "$2" -ge 0 && "$2" -le 100 ]];
-  then
-    echo $(( "$2" * 12000 / 100 )) | sudo tee /sys/class/backlight/intel_backlight/brightness
+  if [[ $1 == "brightness" && $2 -ge 0 && $2 -le 100 ]]; then
+    echo $(( $2 * 12000 / 100 )) | sudo tee /sys/class/backlight/intel_backlight/brightness
   else
     echo "Invalid brightness level. Please enter a value between 0 and 100."
   fi
 }
-_set() {
-    local cur prev opts
-    cur="${COMP_WORDS[COMP_CWORD]}"
-    prev="${COMP_WORDS[COMP_CWORD-1]}"
-    opts="brightness"
-
-    case "${prev}" in
-        set)
-            COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
-            return 0
-            ;;
-        brightness)
-            return 0
-            ;;
-    esac
+# Autocompletion for modify function
+_modify_completions() {
+  local cur_arg=${words[CURRENT]}
+  if [[ $cur_arg == "brightness" ]]; then
+    _arguments '*: :->level'
+  else
+    _arguments '1: :->brightness'
+  fi
 }
-complete -F _set set
+
+compdef _modify_completions modify
+
+
+
