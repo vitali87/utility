@@ -159,11 +159,11 @@ get() {
     xsv frequency -s "$2" "$3" | xsv table
   elif [[ $arg1 == speed && ($arg2 == download || $arg2 == upload || -z $arg2) ]]; then
     which speedtest-cli || pip install speedtest-cli && speedtest-cli
-  elif [[ $arg1 == cpu ]]; then
+  elif [[ $arg1 == info && $arg2 == cpu ]]; then
     lscpu
-  elif [[ $arg1 == memory ]]; then
+  elif [[ $arg1 == info && $arg2 == memory ]]; then
     free -h
-  elif [[ $arg1 == disk ]]; then
+  elif [[ $arg1 == info && $arg2 == disk ]]; then
     lsblk -o NAME,SIZE,TYPE,MOUNTPOINT
   elif [[ $arg1 == network ]]; then
     ifconfig -a
@@ -171,6 +171,8 @@ get() {
     for i in {0..255}; do echo -e "\e[38;05;${i}m${i}"; done | column -c 80 -s '  '; echo -e "\e[m"
   elif [[ $arg1 == repos ]]; then
     curl -s https://api.github.com/users/"$arg2"/repos?per_page=1000 |grep git_url |awk '{print $2}'| sed 's/"(.*)",/^A/'
+  elif [[ $arg1 == info && $arg2 == bios ]]; then
+    sudo dmidecode -t bios
   fi
 }
 _get_completions() {
