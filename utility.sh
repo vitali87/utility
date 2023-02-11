@@ -169,6 +169,8 @@ get() {
     ifconfig -a
   elif [[ $arg1 == value && $arg2 == colour ]]; then
     for i in {0..255}; do echo -e "\e[38;05;${i}m${i}"; done | column -c 80 -s '  '; echo -e "\e[m"
+  elif [[ $arg1 == repos ]]; then
+    curl -s https://api.github.com/users/"$arg2"/repos?per_page=1000 |grep git_url |awk '{print $2}'| sed 's/"(.*)",/^A/'
   fi
 }
 _get_completions() {
