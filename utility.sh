@@ -390,12 +390,12 @@ check() {
 ssl_certificate_dates="ssl_certificate_dates\ <website-name>"
 complete -W "syntax $ssl_certificate_dates" check
 
-leave() {
+retain() {
   if [[ "$2" == only ]]; then
     rm -r !("$1")
   fi
 }
-complete -W "only $cur_dir" leave
+complete -W "only $cur_dir" retain
 
 compress() {
   if [[ "$1" == working_directory ]]; then
