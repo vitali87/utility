@@ -40,6 +40,11 @@ autoload bashcompinit
 bashcompinit
 source ~/Documents/utility/utility.sh
 ```
+
+Install the required packages to run all functions:
+```commandline
+make install
+```
 ## Usage/Examples
 
 Navigate to the desired folder (or alternatively specify the full path) containing the archive file - thunderbird in this example - and execute the following command:
