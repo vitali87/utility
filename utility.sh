@@ -315,13 +315,91 @@ _remove_completions() {
 
   COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
 }
-
 complete -F _remove_completions remove
 
-# simple calculator
 calculate() {
-  echo "$*" | bc -l
+  case "$2" in
+    +)
+      echo "$(($1 + $3))"
+      ;;
+    -)
+      echo "$(($1 - $3))"
+      ;;
+    "*")
+      echo "$(($1 * $3))"
+      ;;
+    /)
+      echo "$(bc -l <<< "$1 / $3")"
+      ;;
+    ^)
+      echo "$(bc -l <<< "$1 ^ $3")"
+      ;;
+    %)
+      echo "$(($1 % $3))"
+      ;;
+  esac
+
+  case "$1" in
+    sin)
+      echo "$(bc -l <<< "s($2)")"
+      ;;
+    cos)
+      echo "$(bc -l <<< "c($2)")"
+      ;;
+    tan)
+      echo "$(bc -l <<< "s($2) / c($2)")"
+      ;;
+    log)
+      echo "$(bc -l <<< "l($2) / l(10)")"
+      ;;
+    ln)
+      echo "$(bc -l <<< "l($2)")"
+      ;;
+    sqrt)
+      echo "$(bc -l <<< "sqrt($2)")"
+      ;;
+    *)
+      if [ -z "$2" ]; then
+        echo "Invalid operation. Please enter a valid operation and two numbers."
+        echo "Usage: calculate [number1] [operation] [number2]"
+        echo "Operations: +, -, *, /, ^, %, sin, cos, tan, log, ln, sqrt"
+      fi
+      ;;
+  esac
 }
+_calculate_options() {
+  local cur prev opts
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+
+  if [ $COMP_CWORD -eq 1 ]; then
+    opts="+ - * / ^ % sin cos tan log ln sqrt"
+  elif [ $COMP_CWORD -eq 2 ]; then
+    case "$prev" in
+      sin | cos | tan | log | ln | sqrt)
+        opts=""
+        ;;
+      *)
+        opts="[number1]"
+        ;;
+    esac
+  elif [ $COMP_CWORD -eq 3 ]; then
+    case "$prev" in
+      sin | cos | tan | log | ln | sqrt)
+        opts=""
+        ;;
+      *)
+        opts="+ - * / ^ %"
+        ;;
+    esac
+  elif [ $COMP_CWORD -eq 4 ]; then
+    opts="[number2]"
+  fi
+
+  COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+  return 0
+}
+complete -F _calculate_options calculate
 
 # single line for creating and entering directory
 mkdircd() {
@@ -708,18 +786,21 @@ schedule() {
     ) &)
   fi
 }
-_schedule_completions() {
-  cur_dir=$(
-    FILES=(*)
-    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
-  )
-  local cur
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
+_schedule() {
+  local cur prev opts
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+  opts="script_or_command"
 
-  mapfile -t COMPREPLY < <(compgen -W "script_or_command $cur_dir" -- $cur)
+  if [[ $prev == "schedule" ]]; then
+    COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+  elif [[ $prev == "script_or_command" ]]; then
+    _command_names "${cur}"
+  elif [[ $prev == "$3" ]]; then
+    COMPREPLY=( $(compgen -W "seconds minutes hours days" -- "${cur}") )
+  fi
 }
-complete -F _schedule_completions schedule
+complete -F _schedule schedule
 
 delete() {
   if [[ $1 == column ]]; then # drop col x from a csv
@@ -731,28 +812,54 @@ delete() {
     sudo deluser "$2" # Only root may remove a user or group from the system
   fi
 }
-_delete_completions() {
-  cur_dir=$(
-    FILES=(*)
-    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
-  )
-  local cur
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
+_delete() {
+  local cur prev opts
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+  opts="column row user"
 
-  user_name="user <name>"
-
-  mapfile -t COMPREPLY < <(compgen -W "column row $user_name $cur_dir" -- $cur)
+  case "$prev" in
+    delete)
+      COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+      return
+      ;;
+    column)
+      _filedir
+      return
+      ;;
+    row)
+      _filedir
+      return
+      ;;
+    user)
+      _users
+      return
+      ;;
+    *)
+      ;;
+  esac
 }
-complete -F _delete_completions delete
+complete -F _delete delete
 
 limit() {
-  if [[ $1 == cpu_for_process ]]; then # cpu utilisation for process x
-    nice -n "$2" "$3"
+  if [[ $1 == cpu_for_process ]]; then # set CPU utilization limit for process x
+    if [[ $2 == "--help" ]]; then
+      echo "Usage: limit cpu_for_process [niceness value] [command]"
+      echo "  niceness value: a number in the range -20 to 19, where -20 is the highest priority and 19 is the lowest."
+      echo "  command: the command to run with the specified CPU utilization limit."
+    else
+      nice -n "$2" "$3"
+    fi
   fi
 }
-cpu_for_process="cpu_for_process\ <percent>\ <process>"
-complete -W "$cpu_for_process" limit
+_limit_options() {
+  local cur opts
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  opts="cpu_for_process"
+
+  COMPREPLY=( $(compgen -W "${opts}" -- ${cur}) )
+}
+complete -F _limit_options limit
 
 replicate() {
   # replicate current terminal n times
@@ -763,6 +870,16 @@ stamp() {
   # stamp pdf with a text
   echo "$2" | enscript -B -f Courier-Bold16 -o- | ps2pdf - | pdftk "$1" stamp - output output.pdf
 }
+_stamp_options() {
+  local cur
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  if [[ "$COMP_CWORD" -eq 1 ]]; then
+    COMPREPLY=( $(compgen -f -- "$cur") )
+  elif [[ "$COMP_CWORD" -eq 2 ]]; then
+    COMPREPLY=( $(compgen -W "\"Stamp text\"" -- "$cur") )
+  fi
+}
+complete -F _stamp_options stamp
 
 function modify() {
   # setting utility from the terminal
@@ -772,17 +889,23 @@ function modify() {
     echo "Invalid brightness level. Please enter a value between 0 and 100."
   fi
 }
-# Autocompletion for modify function
-_modify_completions() {
-  local cur_arg=${words[CURRENT]}
-  if [[ $cur_arg == "brightness" ]]; then
-    _arguments '*: :->level'
-  else
-    _arguments '1: :->brightness'
+_modify_options() {
+  local cur prev opts
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+  opts="brightness"
+
+  if [[ "$prev" == "modify" ]]; then
+    COMPREPLY=( $(compgen -W "$opts" -- "$cur") )
+    return 0
+  fi
+
+  if [[ "$prev" == "brightness" ]]; then
+    COMPREPLY=( $(compgen -W "$(seq 0 100)" -- "$cur") )
+    return 0
   fi
 }
-
-compdef _modify_completions modify
+complete -F _modify_options modify
 
 
 
