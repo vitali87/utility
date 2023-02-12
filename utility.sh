@@ -201,29 +201,75 @@ get() {
   fi
 }
 _get_completions() {
-  # Cannot use ls as it can be aliased to ls -lrta
-  cur_dir=$(
-    FILES=(*)
-    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  local prev="${COMP_WORDS[COMP_CWORD-1]}"
+  local options=(
+    "ip external"
+    "ip internal"
+    "ip connected"
+    "commands_most_often"
+    "process_ram"
+    "memory"
+    "functions_loaded"
+    "email"
+    "distro"
+    "line"
+    "weather_forecast"
+    "directory"
+    "program_on_port"
+    "usage_by_directory"
+    "files_modified"
+    "apps_using_internet"
+    "files_or_directories big"
+    "number_of_lines"
+    "files_opened"
+    "network_connections"
+    "permissions octal"
+    "geo_location_from_ip"
+    "packages installed"
+    "users name"
+    "users"
+    "column_frequency"
+    "speed download"
+    "speed upload"
+    "info cpu"
+    "info memory"
+    "info disk"
+    "network"
+    "value colour"
+    "info bios"
+    "info distribution"
+    "users recent"
+    "stats bandwith"
+    "definition"
+    "git repos"
+    "git branches date"
+    "git info authors"
+    "info bit"
+    "password"
   )
-  local cur
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
-
-  ip_external="ip\ external"
-  ip_connected="ip\ connected"
-  packages_installed="packages\ installed"
-  files_or_directories_big="files_or_directories\ big"
-  permissions_octal="permissions\ octal"
-  users_name="users\ name"
-  column_frequency="column_frequency\ <column-name>\ <file>"
-
-  mapfile -t COMPREPLY < <(compgen -W "$ip_external external $ip_connected
-  connected commands_most_often process_ram memory functions_loaded email
-  line weather_forecast directory program_on_port usage_by_directory
-  files_modified apps_using_internet $files_or_directories_big number_of_lines
-  files_opened network_connections $permissions_octal geo_location_from_ip
-  $packages_installed $users_name users $column_frequency $cur_dir" -- $cur)
+  if [[ "$prev" == "git" ]]; then
+    case "$cur" in
+      repos|branches|info)
+        options=( "repos" "branches date" "info authors" )
+        ;;
+    esac
+  elif [[ "$prev" == "speed" ]]; then
+    options=( "download" "upload" )
+  elif [[ "$prev" == "permissions" ]]; then
+    options=( "octal" )
+  elif [[ "$prev" == "files_or_directories" ]]; then
+    options=( "big" )
+  elif [[ "$prev" == "info" ]]; then
+    options=( "cpu" "memory" "disk" "bios" "distribution" "bit" )
+  elif [[ "$prev" == "ip" ]]; then
+    options=( "external" "internal" "connected" )
+  elif [[ "$prev" == "line" ]]; then
+    options=( "all" )
+  elif [[ "$prev" == "value" ]]; then
+    options=( "colour" )
+  fi
+  COMPREPLY=( $(compgen -W "${options[*]}" -- "$cur") )
 }
 complete -F _get_completions get
 
@@ -276,6 +322,11 @@ mkdircd() {
 
 # convert x to y
 recast() {
+  local arg1="$1"
+  local arg2="$2"
+  local arg3="$3"
+  local arg4="$4"
+
   if [[ $1 == man2pdf ]]; then
     man -t "$2" | ps2pdf - "$3".pdf
   elif [[ $1 == txt2table ]]; then
@@ -299,91 +350,102 @@ recast() {
   elif [[ $1 == mpg2avi ]]; then
     if [[ "$2" != *.mpg ]]; then
         echo "Error: Input file must have the .mpg extension."
-        exit 1
     fi
     if [[ "$3" != *.avi ]]; then
         echo "Error: Output file must have the .avi extension."
-        exit 1
     fi
     ffmpeg -i "$2" "$3"
   elif [[ $1 == avi2mpg ]]; then
     if [[ "$2" != *.avi ]]; then
         echo "Error: Input file must have the .avi extension."
-        exit 1
     fi
     if [[ "$3" != *.mpg ]]; then
         echo "Error: Output file must have the .mpg extension."
-        exit 1
     fi
     ffmpeg -i "$2" "$3"
   elif [[ $1 == avi2flv ]]; then
       if [[ "$2" != *.avi ]]; then
           echo "Error: Input file must have the .avi extension."
-          exit 1
       fi
       if [[ "$3" != *.flv ]]; then
           echo "Error: Output file must have the .flv extension."
-          exit 1
       fi
       ffmpeg -i "$2" -ab 56 -ar 44100 -b 200 -r 15 -s 320x240 -f flv "$3"
   elif [[ $1 == avi2gif ]]; then
       if [[ "$2" != *.avi ]]; then
           echo "Error: Input file must have the .avi extension."
-          exit 1
       fi
       if [[ "$3" != *.gif ]]; then
           echo "Error: Output file must have the .gif extension."
-          exit 1
       fi
       ffmpeg -i "$2" -pix_fmt rgb24 -r 10 -f gif - | gifsicle --optimize=3 --delay=5 > "$3"
   elif [[ $1 == gif2webp ]]; then
       if [[ "$2" != *.gif ]]; then
           echo "Error: Input file must have the .gif extension."
-          exit 1
       fi
       if [[ "$3" != *.webp ]]; then
           echo "Error: Output file must have the .webp extension."
-          exit 1
       fi
       cwebp -q 80 "$2" -o "$3"
-  elif [[ $1 == "img2webp" ]]; then
-      if [[ "$2" != *.png || "$2" != *.jpg || "$2" != *.tiff || "$2" != *.bmp ]]; then
+  elif [[ $1 == img2webp ]]; then
+      if [[ "$2" != *.png && "$2" != *.jpg && "$2" != *.tiff && "$2" != *.bmp ]]; then
           echo "Error: Input file must have either the .png, .jpg, .tiff, or .bmp extension."
-          exit 1
       fi
       if [[ "$3" != *.webp ]]; then
           echo "Error: Output file must have the .webp extension."
-          exit 1
       fi
       cwebp -q 80 "$2" -o "$3"
-  elif [[ $1 == "img2video" ]]; then
-      if [[ ! -d "$2" ]]; then
-          echo "Error: Input directory does not exist."
-          exit 1
-      fi
-      if [[ "$3" != *.mp4 ]]; then
-          echo "Error: Output file must have the .mp4 extension."
-          exit 1
-      fi
-      ffmpeg -framerate 30 -pattern_type glob -i "$2"/'*.[jJ][pP][gG]' -i "$2"/'*.[pP][nN][gG]' -i "$2"/'*.[tT][iI][fF][fF]' -i "$2"/'*.[bB][mM][pP]' -c:v libx264 -pix_fmt yuv420p "$3"
+  elif [[ "$arg1" == png2video ]]; then
+    if [[ ! -d "$arg2" ]]; then
+        echo "Error: Input directory does not exist."
+    fi
+    if [[ "$arg3" != *.mp4 ]]; then
+        echo "Error: Output file must have the .mp4 extension."
+    fi
+    ffmpeg -framerate 1 -pattern_type glob -i "$arg2/*.png" -c:v libx264 -r 30 -pix_fmt yuv420p "$arg3"
   fi
 }
-_recast_completions() {
-  cur_dir=$(
-    FILES=(*)
-    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
-  )
-  local cur
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
+_recast_autocomplete() {
+    local cur prev opts
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-  man2pdf="man2pdf\ <man_name>\ <pdf_name>"
-  txt2table="txt2table\ <txt-file>"
-  space2_="space2_\ [<file>]"
+    opts="man2pdf txt2table space2_ json2yaml jpgpng2pdf pngjpg2pdf jpg2pdf png2pdf upper2lower camel2_ mpg2avi avi2mpg avi2flv avi2gif gif2webp img2webp png2video"
 
-  mapfile -t COMPREPLY < <(compgen -W "$man2pdf $txt2table $space2_ $cur_dir" -- $cur)
+    if [[ ${prev} == man2pdf ]]; then
+        # complete filename for man2pdf
+        COMPREPLY=( $(compgen -f -- "${cur}" ) )
+    elif [[ ${prev} == txt2table ]]; then
+        # complete filename for txt2table
+        COMPREPLY=( $(compgen -f -- "${cur}" ) )
+    elif [[ ${prev} == space2_ ]]; then
+        # complete directories or files
+        COMPREPLY=( $(compgen -A directory -- "${cur}" ) $(compgen -A file -- "${cur}" ) )
+    elif [[ ${prev} == json2yaml ]]; then
+        # complete filenames for json2yaml
+        COMPREPLY=( $(compgen -f -- "${cur}" ) )
+    elif [[ ${prev} == jpgpng2pdf || ${prev} == pngjpg2pdf || ${prev} == jpg2pdf || ${prev} == png2pdf ]]; then
+        # complete filenames for image to pdf conversions
+        COMPREPLY=( $(compgen -f -- "${cur}" ) )
+    elif [[ ${prev} == upper2lower ]]; then
+        # complete directories or files
+        COMPREPLY=( $(compgen -A directory -- "${cur}" ) $(compgen -A file -- "${cur}" ) )
+    elif [[ ${prev} == camel2_ ]]; then
+        # complete filenames for camel2_
+        COMPREPLY=( $(compgen -f -- "${cur}" ) )
+    elif [[ ${prev} == mpg2avi || ${prev} == avi2mpg || ${prev} == avi2flv || ${prev} == avi2gif || ${prev} == gif2webp || ${prev} == img2webp ]]; then
+        # complete filenames for video/image conversions
+        COMPREPLY=( $(compgen -f -- "${cur}" ) )
+    elif [[ ${prev} == png2video ]]; then
+        # complete directories for png2video
+        COMPREPLY=( $(compgen -d -- "${cur}" ) )
+    else
+        # complete options
+        COMPREPLY=( $(compgen -W "${opts}" -- "${cur}" ) )
+    fi
 }
-complete -F _recast_completions recast
+
+complete -F _recast_autocomplete recast
 
 # create random-length passwords etc.
 create() {
