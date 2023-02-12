@@ -75,8 +75,9 @@ peek() {
 get() {
   arg1="$1"
   arg2="$2"
-  user_n=$arg2
   arg3="$3"
+
+  user_n=$arg2
 
   # external ip address
   if [[ $arg1 == ip && $arg2 == external ]]; then
@@ -169,8 +170,6 @@ get() {
     ifconfig -a
   elif [[ $arg1 == value && $arg2 == colour ]]; then
     for i in {0..255}; do echo -e "\e[38;05;${i}m${i}"; done | column -c 80 -s '  '; echo -e "\e[m"
-  elif [[ $arg1 == repos ]]; then
-    curl -s https://api.github.com/users/"$arg2"/repos?per_page=1000 |grep git_url |awk '{print $2}'| sed 's/"(.*)",/^A/'
   elif [[ $arg1 == info && $arg2 == bios ]]; then
     sudo dmidecode -t bios
   elif [[ $arg1 == info && $arg2 == distribution ]]; then
@@ -181,9 +180,11 @@ get() {
     ifstat -nt
   elif [[ $arg1 == definition ]]; then
     curl dict://dict.org/d:"$arg2"
-  elif [[ $arg1 == branches && $arg2 == date ]]; then
+  elif [[ $arg1 == git && $arg2 == repos ]]; then
+    curl -s https://api.github.com/users/"$arg2"/repos?per_page=1000 |grep git_url |awk '{print $2}'| sed 's/"(.*)",/^A/'
+  elif [[ $arg1 == git && $arg2 == branches && $arg3 == date ]]; then
     for k in `git branch|perl -pe s/^..//`;do echo -e `git show --pretty=format:"%Cgreen%ci %Cblue%cr%Creset" $k|head -n 1`\\t$k;done|sort -r
-  elif [[ $arg1 == info && $arg2 == authors ]]; then
+  elif [[ $arg1 == git && $arg2 == info && $arg3 == authors ]]; then
     git log --format='%aN' | sort -u
   elif [[ $arg1 == info && $arg2 == bit ]]; then
     getconf LONG_BIT
