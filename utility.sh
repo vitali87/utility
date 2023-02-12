@@ -173,6 +173,20 @@ get() {
     curl -s https://api.github.com/users/"$arg2"/repos?per_page=1000 |grep git_url |awk '{print $2}'| sed 's/"(.*)",/^A/'
   elif [[ $arg1 == info && $arg2 == bios ]]; then
     sudo dmidecode -t bios
+  elif [[ $arg1 == info && $arg2 == distribution ]]; then
+    cat /etc/*release
+  elif [[ $arg1 == users && $arg2 == recent ]]; then
+    last  | grep -v "^$" | awk '{ print $1 }' | sort -nr | uniq -c
+  elif [[ $arg1 == stats && $arg2 == bandwith ]]; then
+    ifstat -nt
+  elif [[ $arg1 == definition ]]; then
+    curl dict://dict.org/d:"$arg2"
+  elif [[ $arg1 == branches && $arg2 == date ]]; then
+    for k in `git branch|perl -pe s/^..//`;do echo -e `git show --pretty=format:"%Cgreen%ci %Cblue%cr%Creset" $k|head -n 1`\\t$k;done|sort -r
+  elif [[ $arg1 == info && $arg2 == authors ]]; then
+    git log --format='%aN' | sort -u
+  elif [[ $arg1 == info && $arg2 == bit ]]; then
+    getconf LONG_BIT
   fi
 }
 _get_completions() {
@@ -255,10 +269,18 @@ recast() {
     man -t "$2" | ps2pdf - "$3".pdf
   elif [[ $1 == txt2table ]]; then
     column -tns: "$2"
-  elif [[ $1 == space2_ && $# -eq 1 ]]; then # convert all files' spaces into underscores
+  elif [[ $1 == space2_ && $# -eq 1 ]]; then
     rename 'y/ /_/' -- *
-  elif [[ $1 == space2_ && $# -eq 2 ]]; then # convert one file's spaces into underscores
+  elif [[ $1 == space2_ && $# -eq 2 ]]; then
     rename 'y/ /_/' "$2"
+  elif [[ $1 == json2yaml ]]; then
+    jq -M . "$arg2" > "$arg3"
+  elif [[ $1 == jpgpng2pdf || $1 == pngjpg2pdf ]]; then
+    convert *.png *.jpg output.pdf
+  elif [[ $1 == upper2lower ]]; then
+    rename 'y/A-Z/a-z/' *
+  elif [[ $1 == camel2_ ]]; then
+    sed -r 's/([a-z]+)([A-Z][a-z]+)/\1_\l\2/g' "$2"
   fi
 }
 _recast_completions() {
@@ -331,12 +353,17 @@ _create_completions() {
 }
 complete -F _create_completions create
 
-# search what pattern where
 search() {
   arg1=$1
   arg2=$2
+  arg3=$3
 
-  grep -RnisI "$arg1" "$arg2"
+  if [[ $arg1 == files ]]; then
+    grep -RnisI "$arg2" "$arg3"
+  elif [[ $arg1 == google ]]; then
+    Q="$arg2"; GOOG_URL="http://www.google.com/search?q="; AGENT="Mozilla/4.0"; stream=$(curl -A "$AGENT" -skLm 10 "${GOOG_URL}\"${Q/\ /+}\"" |  grep -oP '\/url\?q=.+?&amp' |  sed 's/\/url?q=//;s/&amp//');  echo -e "${stream//\%/\x}"
+  fi
+
 }
 _search_completions() {
   # Cannot use ls as it can be aliased to ls -lrta
@@ -354,14 +381,16 @@ complete -F _search_completions search
 
 replace() {
   # replace slashes back
-  if [[ "$1" == slashes_in_filenames && "$2" == to_back ]]; then
+  if [[ "$1" == slashes && "$2" == back ]]; then
     sed -i 's|\/|\\|g' "$3"
   # replace slashes forth
-  elif [[ "$1" == slashes_in_filenames && "$2" == to_forth ]]; then
+  elif [[ "$1" == slashes && "$2" == forth ]]; then
     sed -i 's|\\|\/|g' "$3"
   # replace string "a" with string "b" in files
-  elif [[ "$1" == string_in_files ]]; then
+  elif [[ "$1" == string ]]; then
     grep -rl "$2" "$4" | xargs sed -i -e "s/$2/$3/"
+  elif [[ "$1" == tabs && "$2" == spaces ]]; then
+    find ./ -type f -exec  sed -i 's/\t/  /g' {} \;
   fi
 }
 _replace_completions() {
