@@ -181,13 +181,23 @@ get() {
   elif [[ $arg1 == definition ]]; then
     curl dict://dict.org/d:"$arg2"
   elif [[ $arg1 == git && $arg2 == repos ]]; then
-    curl -s https://api.github.com/users/"$arg2"/repos?per_page=1000 |grep git_url |awk '{print $2}'| sed 's/"(.*)",/^A/'
+    curl -s https://api.github.com/users/"$arg3"/repos?per_page=1000 |grep git_url |awk '{print $2}'| sed 's/"(.*)",/^A/'
   elif [[ $arg1 == git && $arg2 == branches && $arg3 == date ]]; then
     for k in `git branch|perl -pe s/^..//`;do echo -e `git show --pretty=format:"%Cgreen%ci %Cblue%cr%Creset" $k|head -n 1`\\t$k;done|sort -r
-  elif [[ $arg1 == git && $arg2 == info && $arg3 == authors ]]; then
-    git log --format='%aN' | sort -u
+  elif [[ $arg1 == git && $arg2 == info ]]; then
+    if [[ -z "$arg3" || "$arg3" != "authors" ]]; then
+      echo "Error: The third argument must be on these options: authors"
+    else
+      git log --format='%aN' | sort -u
+    fi
   elif [[ $arg1 == info && $arg2 == bit ]]; then
     getconf LONG_BIT
+  elif [[ $arg1 == password ]]; then
+    if [[ -z "$arg2" ]]; then
+      echo "Please provide the SSID"
+    else
+      sudo cat /etc/NetworkManager/system-connections/"$arg2" | grep psk=
+    fi
   fi
 }
 _get_completions() {
@@ -275,13 +285,87 @@ recast() {
   elif [[ $1 == space2_ && $# -eq 2 ]]; then
     rename 'y/ /_/' "$2"
   elif [[ $1 == json2yaml ]]; then
-    jq -M . "$arg2" > "$arg3"
+    jq -M . "$2" > "$3"
   elif [[ $1 == jpgpng2pdf || $1 == pngjpg2pdf ]]; then
     convert *.png *.jpg output.pdf
+  elif [[ $1 == jpg2pdf ]]; then
+    convert *.jpg output.pdf
+  elif [[ $1 == png2pdf ]]; then
+    convert *.png output.pdf
   elif [[ $1 == upper2lower ]]; then
     rename 'y/A-Z/a-z/' *
   elif [[ $1 == camel2_ ]]; then
     sed -r 's/([a-z]+)([A-Z][a-z]+)/\1_\l\2/g' "$2"
+  elif [[ $1 == mpg2avi ]]; then
+    if [[ "$2" != *.mpg ]]; then
+        echo "Error: Input file must have the .mpg extension."
+        exit 1
+    fi
+    if [[ "$3" != *.avi ]]; then
+        echo "Error: Output file must have the .avi extension."
+        exit 1
+    fi
+    ffmpeg -i "$2" "$3"
+  elif [[ $1 == avi2mpg ]]; then
+    if [[ "$2" != *.avi ]]; then
+        echo "Error: Input file must have the .avi extension."
+        exit 1
+    fi
+    if [[ "$3" != *.mpg ]]; then
+        echo "Error: Output file must have the .mpg extension."
+        exit 1
+    fi
+    ffmpeg -i "$2" "$3"
+  elif [[ $1 == avi2flv ]]; then
+      if [[ "$2" != *.avi ]]; then
+          echo "Error: Input file must have the .avi extension."
+          exit 1
+      fi
+      if [[ "$3" != *.flv ]]; then
+          echo "Error: Output file must have the .flv extension."
+          exit 1
+      fi
+      ffmpeg -i "$2" -ab 56 -ar 44100 -b 200 -r 15 -s 320x240 -f flv "$3"
+  elif [[ $1 == avi2gif ]]; then
+      if [[ "$2" != *.avi ]]; then
+          echo "Error: Input file must have the .avi extension."
+          exit 1
+      fi
+      if [[ "$3" != *.gif ]]; then
+          echo "Error: Output file must have the .gif extension."
+          exit 1
+      fi
+      ffmpeg -i "$2" -pix_fmt rgb24 -r 10 -f gif - | gifsicle --optimize=3 --delay=5 > "$3"
+  elif [[ $1 == gif2webp ]]; then
+      if [[ "$2" != *.gif ]]; then
+          echo "Error: Input file must have the .gif extension."
+          exit 1
+      fi
+      if [[ "$3" != *.webp ]]; then
+          echo "Error: Output file must have the .webp extension."
+          exit 1
+      fi
+      cwebp -q 80 "$2" -o "$3"
+  elif [[ $1 == "img2webp" ]]; then
+      if [[ "$2" != *.png || "$2" != *.jpg || "$2" != *.tiff || "$2" != *.bmp ]]; then
+          echo "Error: Input file must have either the .png, .jpg, .tiff, or .bmp extension."
+          exit 1
+      fi
+      if [[ "$3" != *.webp ]]; then
+          echo "Error: Output file must have the .webp extension."
+          exit 1
+      fi
+      cwebp -q 80 "$2" -o "$3"
+  elif [[ $1 == "img2video" ]]; then
+      if [[ ! -d "$2" ]]; then
+          echo "Error: Input directory does not exist."
+          exit 1
+      fi
+      if [[ "$3" != *.mp4 ]]; then
+          echo "Error: Output file must have the .mp4 extension."
+          exit 1
+      fi
+      ffmpeg -framerate 30 -pattern_type glob -i "$2"/'*.[jJ][pP][gG]' -i "$2"/'*.[pP][nN][gG]' -i "$2"/'*.[tT][iI][fF][fF]' -i "$2"/'*.[bB][mM][pP]' -c:v libx264 -pix_fmt yuv420p "$3"
   fi
 }
 _recast_completions() {
