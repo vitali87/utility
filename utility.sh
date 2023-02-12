@@ -292,22 +292,30 @@ remove() {
   fi
 }
 _remove_completions() {
-  cur_dir=$(
-    FILES=(*)
-    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
-  )
-  local cur
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
+  local cur opts
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  opts="duplicates dirs program_at_system_startup lines"
 
-  dirs_empty="dirs\ empty"
-  lines_blank="lines\ blank\ <old-filename>\ <new-filename>"
-  duplicates="duplicates\ <file>"
-  program_at_system_startup="program_at_system_startup\ <program>"
-  lines="lines\ <line-number>\ <filename>"
+  case "${COMP_WORDS[1]}" in
+    duplicates)
+      # No completions needed for the second argument as it's a file path
+      return
+      ;;
+    dirs)
+      opts="empty"
+      ;;
+    program_at_system_startup)
+      # No completions needed for the second argument as it's a program name
+      return
+      ;;
+    lines)
+      opts="blank"
+      ;;
+  esac
 
-  mapfile -t COMPREPLY < <(compgen -W "$duplicates $dirs_empty empty $program_at_system_startup $lines_blank blank $lines $cur_dir" -- $cur)
+  COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
 }
+
 complete -F _remove_completions remove
 
 # simple calculator
@@ -486,18 +494,58 @@ create() {
   fi
 }
 _create_completions() {
-  local cur
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  local opts="passwd str_num_seq graph new_file user"
 
-  graph="graph\ connection"
-  str_num_seq="str_num_seq\ <str>\ <number>"
-  passwd="passwd\ <length>"
-  new_reduce="new_file\ <old-file>\ reduce_by_delimiter\ <delimiter>"
-  user_add="user\ <name>"
+  if [[ ${COMP_CWORD} -eq 1 ]]; then
+    COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+    return 0
+  fi
 
-  mapfile -t COMPREPLY < <(compgen -W "$passwd $str_num_seq $graph $new_reduce $user_add" -- $cur)
+  case "${COMP_WORDS[1]}" in
+    passwd)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        COMPREPLY=($(compgen -W "$(seq 1 100)" -- "${cur}"))
+        return 0
+      fi
+      ;;
+    str_num_seq)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        return 0
+      fi
+      if [[ ${COMP_CWORD} -eq 3 ]]; then
+        COMPREPLY=($(compgen -W "$(seq 1 100)" -- "${cur}"))
+        return 0
+      fi
+      if [[ ${COMP_CWORD} -eq 4 ]]; then
+        return 0
+      fi
+      ;;
+    graph)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        local opts="connection"
+        COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+        return 0
+      fi
+      ;;
+    new_file)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        return 0
+      fi
+      if [[ ${COMP_CWORD} -eq 3 ]]; then
+        local opts="reduce_by_delimiter"
+        COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+        return 0
+      fi
+      ;;
+    user)
+      if [[ ${COMP_CWORD} -eq 2 ]]; then
+        return 0
+      fi
+      ;;
+  esac
 }
+
 complete -F _create_completions create
 
 search() {
@@ -513,17 +561,18 @@ search() {
 
 }
 _search_completions() {
-  # Cannot use ls as it can be aliased to ls -lrta
-  cur_dir=$(
-    FILES=(*)
-    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
-  )
-  local cur
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  local prev="${COMP_WORDS[COMP_CWORD-1]}"
 
-  mapfile -t COMPREPLY < <(compgen -W "$cur_dir" -- $cur)
+  if [[ "$prev" == "search" ]]; then
+    COMPREPLY=($(compgen -W "files google" -- "$cur"))
+    return 0
+  elif [[ "$prev" == "files" ]]; then
+    _filedir
+    return 0
+  fi
 }
+
 complete -F _search_completions search
 
 replace() {
@@ -540,40 +589,93 @@ replace() {
     find ./ -type f -exec  sed -i 's/\t/  /g' {} \;
   fi
 }
-_replace_completions() {
-  cur_dir=$(
-    FILES=(*)
-    for file in "${FILES[@]}"; do basename "$file"; done | sed "s/^/'/;s/$/'/"
-  )
-  local cur
-  COMPREPLY=()
-  cur=${COMP_WORDS[COMP_CWORD]}
-
-  slashes_back="slashes_in_filenames\ to_back"
-  slashes_forth="slashes_in_filenames\ to_forth"
-  string_in_files="string_in_files\ <old-string>\ <new-string>\ <files>"
-
-  mapfile -t COMPREPLY < <(compgen -W "$slashes_back $slashes_forth $string_in_files $cur_dir" -- $cur)
+_replace_slashes_back_completions() {
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    COMPREPLY=( $(compgen -W "slashes back" -- "$cur") )
 }
+
+_replace_slashes_forth_completions() {
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    COMPREPLY=( $(compgen -W "slashes forth" -- "$cur") )
+}
+
+_replace_string_completions() {
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    COMPREPLY=( $(compgen -W "string" -- "$cur") )
+}
+
+_replace_tabs_spaces_completions() {
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    COMPREPLY=( $(compgen -W "tabs spaces" -- "$cur") )
+}
+
+_replace_completions() {
+    local cur=${COMP_WORDS[COMP_CWORD]}
+    case "$cur" in
+        slashes)
+            _replace_slashes_back_completions
+            ;;
+        string)
+            _replace_string_completions
+            ;;
+        tabs)
+            _replace_tabs_spaces_completions
+            ;;
+        *)
+            COMPREPLY=( $(compgen -W "slashes string tabs" -- "$cur") )
+            ;;
+    esac
+}
+
 complete -F _replace_completions replace
 
 check() {
   if [[ "$1" == syntax ]]; then
     find . -name '*.sh' -exec bash -n {} \;
   elif [[ "$1" == ssl_certificate_dates ]]; then
+    if [ -z "$2" ]; then
+      echo "Error: Website name not provided."
+      return 1
+    fi
     echo | openssl s_client -connect "$2":443 2> /dev/null \
       | openssl x509 -dates -noout
   fi
 }
-ssl_certificate_dates="ssl_certificate_dates\ <website-name>"
-complete -W "syntax $ssl_certificate_dates" check
+_check_completions() {
+  local cur="${COMP_WORDS[COMP_CWORD]}"
+  local options=("syntax" "ssl_certificate_dates")
+  if [ "$COMP_CWORD" -eq 1 ]; then
+    COMPREPLY=( $(compgen -W "${options[*]}" -- "$cur") )
+  elif [ "$COMP_CWORD" -eq 2 ] && [ "${COMP_WORDS[1]}" == "ssl_certificate_dates" ]; then
+    COMPREPLY=( $(compgen -f -- "$cur") )
+  fi
+}
+complete -F _check_completions check
 
 retain() {
   if [[ "$2" == only ]]; then
-    rm -r !("$1")
+    echo "This command will delete all files except for '$1'. Are you sure you want to continue? (y/n)"
+    read confirm
+    if [[ "$confirm" == "y" ]]; then
+      find . -type f ! -name "$1" -delete
+    else
+      echo "Aborted."
+    fi
   fi
 }
-complete -W "only $cur_dir" retain
+_retain_completions() {
+  local cur
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  if [[ "$COMP_CWORD" -eq 1 ]]; then
+    # Complete file names for the first argument
+    COMPREPLY=($(compgen -f -- "$cur"))
+  elif [[ "$COMP_CWORD" -eq 2 ]]; then
+    # Complete only keyword for the second argument
+    COMPREPLY=($(compgen -W "only" -- "$cur"))
+  fi
+}
+
+complete -F _retain_completions retain
 
 compress() {
   if [[ "$1" == working_directory ]]; then
@@ -581,7 +683,22 @@ compress() {
       | tar -xvf $1 > out.tar.gz
   fi
 }
-complete -W "working_directory" compress
+_compress() {
+  local cur prev opts
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  prev="${COMP_WORDS[COMP_CWORD-1]}"
+  opts="working_directory"
+
+  case "${prev}" in
+    compress)
+      COMPREPLY=($(compgen -W "${opts}" -- "${cur}"))
+      return
+      ;;
+    *)
+      ;;
+  esac
+}
+complete -F _compress compress
 
 schedule() {
   if [[ "$1" == script_or_command ]]; then
