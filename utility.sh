@@ -198,6 +198,8 @@ get() {
     else
       sudo cat /etc/NetworkManager/system-connections/"$arg2" | grep psk=
     fi
+  elif [[ $arg1 == applications ]]; then
+    ls /usr/share/applications/ 
   fi
 }
 _get_completions() {
@@ -247,6 +249,7 @@ _get_completions() {
     "git info authors"
     "info bit"
     "password"
+    "applications"
   )
   if [[ "$prev" == "git" ]]; then
     case "$cur" in
