@@ -177,7 +177,7 @@ Go to the project directory
 Install dependencies
 
 ```commandline
-TBC
+make install
 ```
 
 
