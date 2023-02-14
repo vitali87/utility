@@ -907,5 +907,19 @@ _modify_options() {
 }
 complete -F _modify_options modify
 
-
+# For launching various applications not easily available in the command line
+launch() {
+  if [[ $1 == "cisco-anyconnect" ]]; then
+    /opt/cisco/anyconnect/bin/vpnui
+  else
+    echo "Error: Invalid option. Valid options are: cisco-anyconnect."
+  fi
+}
+_launch_completion() {
+  local cur opts
+  cur="${COMP_WORDS[COMP_CWORD]}"
+  opts="cisco-anyconnect"
+  COMPREPLY=( $(compgen -W "${opts}" -- "${cur}") )
+}
+complete -F _launch_completion launch
 
