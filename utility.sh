@@ -53,19 +53,41 @@ extract() {
 
 peek() {
   default=25
-  n=$(xsv headers "$1" | wc -l)
-  n_1=$((n - 1))
+  file="$1"
   user_n="$2"
   choice="${user_n:-"$default"}"
   len=$((choice + 1))
   user_n_2=$((choice - 2))
 
-  if [ "$n" -gt "$default" ]; then
-    xsv < "$1" select 1-"$user_n_2","$n_1","$n" | head -n "$len" | xsv table
-  else
-    xsv < "$1" select 1-"${user_n:-$n}" | head -n "$len" | xsv table
-  fi
+  case "${file##*.}" in
+    "csv")
+      n=$(xsv headers "$file" | wc -l)
+      n_1=$((n - 1))
+
+      if [ "$n" -gt "$default" ]; then
+        xsv < "$file" select 1-"$user_n_2","$n_1","$n" | head -n "$len" | xsv table
+      else
+        xsv < "$file" select 1-"${user_n:-$n}" | head -n "$len" | xsv table
+      fi
+      ;;
+    "tsv")
+      if [ "$choice" -gt "$default" ]; then
+        head -n "$len" "$file" | cut -f 1-"$user_n_2",$((n-1)),$n | column -t -s $'\t'
+      else
+        head -n "$len" "$file" | column -t -s $'\t'
+      fi
+      ;;
+    "json")
+      jq -r '.[0:('"$len"')] | map(. | to_entries | map(.value) | @tsv) | .[]' "$file" | column -t -s $'\t'
+      ;;
+    *)
+      echo "Unsupported file format. Please use CSV, TSV, or JSON files."
+      ;;
+  esac
 }
+
+
+
 
 get() {
   arg1="$1"
