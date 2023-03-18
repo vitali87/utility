@@ -1,11 +1,12 @@
 #!/bin/bash
 
-formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar .7z .tar.lzma .xz .lzma)
+formats=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .tbz .tbz2 .txz .tb2 .bz .bz2 .tbz .tbz2 .gz .zip .jar .Z .rar .7z .tar.lzma .xz .lzma .iso .img .dmg)
 
 extract() {
   second=${2:-"."}
   lowercase_filename=$(echo "$1" | tr '[:upper:]' '[:lower:]')
   matched=false
+
 
   for format in "${formats[@]}"; do
     if [[ "$lowercase_filename" == *"$format" ]]; then
@@ -20,9 +21,9 @@ extract() {
   fi
 
   case "$lowercase_filename" in
-    *.tar.xz|*.tar.gz|*.tar.bz2|*.tar|*.tgz)
+    *.tar.xz|*.tar.gz|*.tar.bz2|*.tar|*.tgz|*.tbz|*.tbz2|*.txz|*.tb2)
       tar -xvf "$1" -C "$second" ;;
-    *.bz|*.bz2|*.tbz|*.tbz2)
+    *.bz|*.bz2)
       bzip2 -d -k "$1" ;;
     *.gz)
       gunzip "$1" -c > "$second" ;;
@@ -40,6 +41,10 @@ extract() {
       unxz "$1" -c > "$second" ;;
     *.lzma)
       unlzma "$1" -c > "$second" ;;
+    *.iso)
+      sudo mount -o loop "$1" "$second" ;;
+    *.img|*.dmg)
+      hdiutil mount "$1" -mountpoint "$second" ;;
     *)
       echo "Unknown error occurred."
       return 1 ;;
