@@ -96,128 +96,250 @@ get() {
 
   user_n=$arg2
 
-  # external ip address
-  if [[ $arg1 == ip && $arg2 == external ]]; then
-    curl ifconfig.me
-  # internal ip address
-  elif [[ $arg1 == ip && $arg2 == internal ]]; then
-    hostname -I | awk '{print $1}'
-  # connected ip addresses
-  elif [[ $arg1 == ip && $arg2 == connected ]]; then
-    netstat -lantp | grep ESTABLISHED | awk '{print $5}' | awk -F: '{print $1}' | sort -u
-  # commands that are used most often
-  elif [[ $arg1 == commands_most_often ]]; then
-    history | awk '{a[$2]++}END{for(i in a){print a[i] " " i}}' \
-      | sort -rn | head -n "${user_n:-10}"
-  # RAM consumed by a process
-  elif [[ $arg1 == process_ram ]]; then
-    ps aux | sort -nk +4 | tail -n "${user_n:-10}"
-  # memory used, free, available
-  elif [[ $arg1 == memory ]]; then
-    watch -n 5 -d '/bin/free -m'
-  # which functions are loaded?
-  elif [[ $arg1 == functions_loaded ]]; then
-    shopt -s extdebug
-    declare -F | grep -v "declare -f _" | declare -F $(awk "{print $3}") | column -t
-    shopt -u extdebug
-  # Fetch gmail inbox titles
-  elif [[ $arg1 == email ]]; then
-    # Before using this function, create an App password in your google account
-    # And use it instead of your password
-    read -r -p 'Username: ' uservar
-    read -r -sp 'Password: ' passvar
-    curl -u "$uservar":"$passvar" --silent "https://mail.google.com/mail/feed/atom" \
-      | tr -d '\n' | awk -F '<entry>' '{for (i=2; i<=NF; i++) {print $i}}' \
-      | sed -n "s/<title>\(.*\)<\/title.*name>\(.*\)<\/name>.*/\2 - \1/p"
-  # Which distribution of Linux?
-  elif [[ $arg1 == distro ]]; then
-    cat /etc/issue
-  # print line x in file y
-  elif [[ $arg1 == line ]]; then
-    sed -n "$arg2"p "$arg3"
-  # Fetch weather forecast
-  elif [[ $arg1 == weather_forecast ]]; then
-    curl wttr.in/"$arg2"
-  # Get only directories
-  elif [[ $arg1 == directory ]]; then
-    ls -d /*
-  # Which programs are on port x?
-  elif [[ $arg1 == program_on_port ]]; then
-    lsof -i tcp:"$arg2"
-  # Show usage by directory
-  elif [[ $arg1 == usage_by_directory ]]; then
-    du -b --max-depth "${arg2:-1}" | sort -nr \
-      | perl -pe 's{([0-9]+)}{sprintf "%.1f%s",
-       $1>=2**30? ($1/2**30, "G"): $1>=2**20? ($1/2**20, "M"):
-        $1>=2**10? ($1/2**10, "K"): ($1, "")}e'
-  elif [[ $arg1 == files_modified ]]; then
-    sudo find / -mmin "$2" -type f
-  elif [[ $arg1 == apps_using_internet ]]; then
-    lsof -P -i -n | cut -f 1 -d " " | uniq | tail -n +2
-  elif [[ $arg1 == files_or_directories && "$arg2" == big ]]; then
-    sudo du -sm * | sort -n | tail
-  elif [[ $arg1 == number_of_lines ]]; then
-    wc < "$arg2" -l
-  elif [[ $arg1 == files_opened ]]; then
-    lsof -c "$arg2"
-  elif [[ $arg1 == network_connections ]]; then
-    netstat -ant | awk '{print $NF}' | grep -v '[a-z]' | sort | uniq -c
-  elif [[ $arg1 == permissions && "$arg2" == octal ]]; then
-    stat -c '%A %a %n' *
-  elif [[ $arg1 == geo_location_from_ip ]]; then
-    curl -s get http://ip-api.com/json/"$arg2" \
-      | jq 'with_entries(select([.key] | inside(["country", "city", "lat", "lon"])))'
-  elif [[ $arg1 == packages && $arg2 == installed ]]; then
-    dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
-  elif [[ $arg1 == users && $arg2 == name ]]; then
-    awk -F: '{ print $1}' /etc/passwd
-  elif [[ $arg1 == users ]]; then
-    less /etc/passwd
-  elif [[ $arg1 == column_frequency ]]; then
-    xsv frequency -s "$2" "$3" | xsv table
-  elif [[ $arg1 == speed && ($arg2 == download || $arg2 == upload || -z $arg2) ]]; then
-    which speedtest-cli || pip install speedtest-cli && speedtest-cli
-  elif [[ $arg1 == info && $arg2 == cpu ]]; then
-    lscpu
-  elif [[ $arg1 == info && $arg2 == memory ]]; then
-    free -h
-  elif [[ $arg1 == info && $arg2 == disk ]]; then
-    lsblk -o NAME,SIZE,TYPE,MOUNTPOINT
-  elif [[ $arg1 == network ]]; then
-    ifconfig -a
-  elif [[ $arg1 == value && $arg2 == colour ]]; then
-    for i in {0..255}; do echo -e "\e[38;05;${i}m${i}"; done | column -c 80 -s '  '; echo -e "\e[m"
-  elif [[ $arg1 == info && $arg2 == bios ]]; then
-    sudo dmidecode -t bios
-  elif [[ $arg1 == info && $arg2 == distribution ]]; then
-    cat /etc/*release
-  elif [[ $arg1 == users && $arg2 == recent ]]; then
-    last  | grep -v "^$" | awk '{ print $1 }' | sort -nr | uniq -c
-  elif [[ $arg1 == stats && $arg2 == bandwith ]]; then
-    ifstat -nt
-  elif [[ $arg1 == definition ]]; then
-    curl dict://dict.org/d:"$arg2"
-  elif [[ $arg1 == git && $arg2 == repos ]]; then
-    curl -s https://api.github.com/users/"$arg3"/repos?per_page=1000 |grep git_url |awk '{print $2}'| sed 's/"(.*)",/^A/'
-  elif [[ $arg1 == git && $arg2 == branches && $arg3 == date ]]; then
-    for k in `git branch|perl -pe s/^..//`;do echo -e `git show --pretty=format:"%Cgreen%ci %Cblue%cr%Creset" $k|head -n 1`\\t$k;done|sort -r
-  elif [[ $arg1 == git && $arg2 == info ]]; then
-    if [[ -z "$arg3" || "$arg3" != "authors" ]]; then
-      echo "Error: The third argument must be on these options: authors"
-    else
-      git log --format='%aN' | sort -u
-    fi
-  elif [[ $arg1 == info && $arg2 == bit ]]; then
-    getconf LONG_BIT
-  elif [[ $arg1 == password ]]; then
-    if [[ -z "$arg2" ]]; then
+  case "$arg1" in
+    "ip")
+      case "$arg2" in
+        "external")
+          curl ifconfig.me
+          ;;
+        "internal")
+          hostname -I | awk '{print $1}'
+          ;;
+        "connected")
+          netstat -lantp | grep ESTABLISHED | awk '{print $5}' | awk -F: '{print $1}' | sort -u
+          ;;
+      esac
+      ;;
+    "commands_most_often")
+      history | awk '{a[$2]++}END{for(i in a){print a[i] " " i}}' \
+        | sort -rn | head -n "${user_n:-10}"
+      ;;
+    # RAM consumed by a process
+    "process_ram")
+      ps aux | sort -nk +4 | tail -n "${user_n:-10}"
+      ;;
+    # memory used, free, available
+    "memory")
+      watch -n 5 -d '/bin/free -m'
+      ;;
+    # which functions are loaded?
+    "functions_loaded")
+      shopt -s extdebug
+      declare -F | grep -v "declare -f _" | declare -F $(awk "{print $3}") | column -t
+      shopt -u extdebug
+      ;;
+    # Fetch gmail inbox titles
+    "email")
+      # Before using this function, create an App password in your google account
+      # And use it instead of your password
+      read -r -p 'Username: ' uservar
+      read -r -sp 'Password: ' passvar
+      curl -u "$uservar":"$passvar" --silent "https://mail.google.com/mail/feed/atom" \
+        | tr -d '\n' | awk -F '<entry>' '{for (i=2; i<=NF; i++) {print $i}}' \
+        | sed -n "s/<title>\(.*\)<\/title.*name>\(.*\)<\/name>.*/\2 - \1/p"
+      ;;
+    # Which distribution of Linux?
+    "distro")
+      cat /etc/issue
+      ;;
+    # print line x in file y
+    "line")
+      sed -n "$arg2"p "$arg3"
+      ;;
+    # Fetch weather forecast
+    "weather_forecast")
+      curl wttr.in/"$arg2"
+      ;;
+    # Get only directories
+    "directories")
+      ls -d /*
+      ;;
+    # Which programs are on port x?
+    "program_on_port")
+      lsof -i tcp:"$arg2"
+      ;;
+    # Show usage
+    "usage")
+      case "$arg2" in
+        "directories")
+          du -b --max-depth "${arg3:-1}" | sort -nr \
+            | perl -pe 's{([0-9]+)}{sprintf "%.1f%s",
+            $1>=2**30? ($1/2**30, "G"): $1>=2**20? ($1/2**20, "M"):
+            $1>=2**10? ($1/2**10, "K"): ($1, "")}e'
+          ;;
+        "disk")
+          du -sh "${arg3:-.}"
+          ;;
+        *)
+          echo "Invalid option. Usage: get usage by_directory [max_depth] or get usage disk [directory]"
+          ;;
+      esac
+      ;;
+    # Files
+    "files")
+      case $arg2 in
+        "modified")
+          find . -type f -exec stat -c"%y %n" {} \; | sort -r | head -n 20
+          ;;
+        "opened")
+          lsof | grep "$USER" | awk '{print $9}' | grep -vE "(dev|pipe|sock)"
+          ;;
+        "big")
+          find . -type f -printf "%s %p\n" | sort -rn | head -n 10
+          ;;
+        *)
+          echo "Invalid 'files' sub-command."
+          echo "Available options: modified, opened, big"
+          return 1
+          ;;
+      esac
+      ;;
+    "apps_using_internet")
+        lsof -P -i -n | cut -f 1 -d " " | uniq | tail -n +2
+        ;;
+      "number_of_lines")
+        wc < "$arg2" -l
+        ;;
+      "network_connections")
+        netstat -ant | awk '{print $NF}' | grep -v '[a-z]' | sort | uniq -c
+        ;;
+    "permissions")
+      if [[ "$arg2" == "octal" ]]; then
+        stat -c '%A %a %n' *
+      fi
+      ;;
+    "geo_location_from_ip")
+      curl -s get http://ip-api.com/json/"$arg2" \
+        | jq 'with_entries(select([.key] | inside(["country", "city", "lat", "lon"])))'
+      ;;
+    "packages")
+      if [[ "$arg2" == "installed" ]]; then
+        dpkg-query -Wf '${Installed-Size}\t${Package}\n' | sort -n
+      fi
+      ;;
+    "users")
+      case "$arg2" in
+        "name")
+          awk -F: '{ print $1}' /etc/passwd
+          ;;
+        "recent")
+          last  | grep -v "^$" | awk '{ print $1 }' | sort -nr | uniq -c
+          ;;
+        *)
+          less /etc/passwd
+          ;;
+      esac
+      ;;
+    "column_frequency")
+      xsv frequency -s "$2" "$3" | xsv table
+      ;;
+    "speed")
+      if [[ "$arg2" == "download" || "$arg2" == "upload" || -z "$arg2" ]]; then
+        which speedtest-cli || pip install speedtest-cli && speedtest-cli
+      fi
+      ;;
+    "network")
+      ifconfig -a
+      ;;
+    "value")
+      if [[ "$arg2" == "colour" ]]; then
+        for i in {0..255}; do echo -e "\e[38;05;${i}m${i}"; done | column -c 80 -s '  '; echo -e "\e[m"
+      fi
+      ;;
+    # Info
+    "info")
+      case "$arg2" in
+        "bios")
+          sudo dmidecode -t bios
+          ;;
+        "distribution")
+          cat /etc/*release
+          ;;
+        "bit")
+          getconf LONG_BIT
+          ;;
+        "cpu")
+          lscpu
+          ;;
+        "memory")
+          free -h
+          ;;
+        "disk")
+          lsblk -o NAME,SIZE,TYPE,MOUNTPOINT
+          ;;
+        *)
+          echo "Invalid 'info' sub-command."
+          echo "Available options: bios, distribution, bit, cpu, memory, disk"
+          return 1
+          ;;
+      esac
+      ;;
+    "stats")
+      if [[ "$arg2" == "bandwith" ]]; then
+        ifstat -nt
+      fi
+      ;;
+    "definition")
+      curl dict://dict.org/d:"$arg2"
+      ;;
+    # Git section
+    "git")
+      case "$arg2" in
+        "repos")
+          curl -s https://api.github.com/users/"$arg3"/repos?per_page=1000 | grep git_url | awk '{print $2}' | sed 's/"(.*)",/^A/'
+          ;;
+        "branches")
+          if [[ "$arg3" == "date" ]]; then
+            for k in `git branch | perl -pe s/^..//`; do
+              echo -e `git show --pretty=format:"%Cgreen%ci %Cblue%cr%Creset" $k | head -n 1`\\t$k
+            done | sort -r
+          else
+            echo "Error: The third argument must be on these options: date"
+          fi
+          ;;
+        "info")
+          if [[ "$arg3" == "authors" ]]; then
+            git log --format='%aN' | sort -u
+          else
+            echo "Error: The third argument must be on these options: authors"
+          fi
+          ;;
+        *)
+          echo "Error: The second argument must be on these options: repos, branches, info"
+          ;;
+      esac
+      ;;
+    *)
+      echo "Error: The first argument must be on these options: git"
+      ;;
+    "password")
+      if [[ -z "$arg2" ]]; then
       echo "Please provide the SSID"
-    else
+      else
       sudo cat /etc/NetworkManager/system-connections/"$arg2" | grep psk=
-    fi
-  elif [[ $arg1 == applications ]]; then
-    ls /usr/share/applications/ 
-  fi
+      fi
+    ;;
+    "applications")
+      ls /usr/share/applications/
+      ;;
+    # Process-related commands
+    "processes")
+      case $arg2 in
+        running)
+          ps aux
+          ;;
+        top_cpu)
+          ps aux --sort=-%cpu | head
+          ;;
+        top_memory)
+          ps aux --sort=-%mem | head
+          ;;
+        *)
+          echo "Invalid process type. Options are: running, top_cpu, top_memory"
+          ;;
+      esac
+      ;;
+  esac
 }
 _get_completions() {
   local cur="${COMP_WORDS[COMP_CWORD]}"
@@ -227,70 +349,100 @@ _get_completions() {
     "ip internal"
     "ip connected"
     "commands_most_often"
-    "process_ram"
+    "process running"
+    "process top_cpu"
+    "process top_memory"
     "memory"
     "functions_loaded"
     "email"
     "distro"
     "line"
     "weather_forecast"
-    "directory"
+    "directories"
     "program_on_port"
-    "usage_by_directory"
-    "files_modified"
+    "usage directories"
+    "usage disk"
+    "files modified"
+    "files opened"
+    "files big"
     "apps_using_internet"
-    "files_or_directories big"
     "number_of_lines"
-    "files_opened"
     "network_connections"
     "permissions octal"
     "geo_location_from_ip"
     "packages installed"
     "users name"
     "users"
+    "users recent"
     "column_frequency"
     "speed download"
     "speed upload"
     "info cpu"
     "info memory"
     "info disk"
-    "network"
-    "value colour"
+    "info bit"
     "info bios"
     "info distribution"
-    "users recent"
+    "network"
+    "value colour"
     "stats bandwith"
     "definition"
     "git repos"
     "git branches date"
     "git info authors"
-    "info bit"
     "password"
     "applications"
   )
-  if [[ "$prev" == "git" ]]; then
-    case "$cur" in
-      repos|branches|info)
-        options=( "repos" "branches date" "info authors" )
-        ;;
-    esac
-  elif [[ "$prev" == "speed" ]]; then
-    options=( "download" "upload" )
-  elif [[ "$prev" == "permissions" ]]; then
-    options=( "octal" )
-  elif [[ "$prev" == "files_or_directories" ]]; then
-    options=( "big" )
-  elif [[ "$prev" == "info" ]]; then
-    options=( "cpu" "memory" "disk" "bios" "distribution" "bit" )
-  elif [[ "$prev" == "ip" ]]; then
-    options=( "external" "internal" "connected" )
-  elif [[ "$prev" == "line" ]]; then
-    options=( "all" )
-  elif [[ "$prev" == "value" ]]; then
-    options=( "colour" )
-  fi
+  case "$prev" in
+    git)
+      case "$cur" in
+        repos|branches|info)
+          options=( "repos" "branches date" "info authors" )
+          ;;
+      esac
+      ;;
+    users)
+      options=( "name" "recent" )
+      ;;
+    speed)
+      options=( "download" "upload" )
+      ;;
+    permissions)
+      options=( "octal" )
+      ;;
+    files_or_directories)
+      options=( "big" )
+      ;;
+    info)
+      options=( "cpu" "memory" "disk" "bios" "distribution" "bit" )
+      ;;
+    ip)
+      options=( "external" "internal" "connected" )
+      ;;
+    line)
+      options=( "all" )
+      ;;
+    value)
+      options=( "colour" )
+      ;;
+    usage)
+      options=( "directories" "disk" )
+      ;;
+    process)
+      options=( "running" "top_cpu" "top_memory" )
+      ;;
+    files)
+      options=( "modified" "opened" "big" )
+      ;;
+    *)
+      options=(
+        "${options[@]}"
+      )
+      ;;
+  esac
   COMPREPLY=( $(compgen -W "${options[*]}" -- "$cur") )
 }
+
 complete -F _get_completions get
 
 remove() {
