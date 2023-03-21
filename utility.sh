@@ -812,6 +812,8 @@ search() {
     grep -RnisI "$arg2" "$arg3"
   elif [[ $arg1 == google ]]; then
     Q="$arg2"; GOOG_URL="http://www.google.com/search?q="; AGENT="Mozilla/4.0"; stream=$(curl -A "$AGENT" -skLm 10 "${GOOG_URL}\"${Q/\ /+}\"" |  grep -oP '\/url\?q=.+?&amp' |  sed 's/\/url?q=//;s/&amp//');  echo -e "${stream//\%/\x}"
+  elif [[ $arg1 == name ]]; then
+    find . -xdev ! -perm -444 -type d -prune -o -print | grep -i "$arg2" 2>/dev/null
   fi
 
 }
