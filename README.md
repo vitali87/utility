@@ -1,192 +1,94 @@
 <p align="right">
-    <img src="utility2.png" alt="alternate text">
- </p>
+    <img src="utility2.png" alt="u7 logo">
+</p>
 
-# utility
+# u7 - Universal 7 CLI
 
-Those are utility functions to facilitate day-to-day jobs on the command line. 
-All functions follow the following format:
+A unified command-line interface with 7 intuitive verbs for humans and AI agents.
 
-```Action [Target] [Quantity] [Quality] [Destination]```
+## The Universal 7 Verbs
 
-<ins>Action</ins> is any verb that defined actions to be executed, 
-such as *get*, *peek* or *replace*. 
-
-<ins>Target</ins>  can be any IT object like *file*, *memory* or *connection*.
-
-<ins>Quantity</ins> can be any quantifiable output like *5*.
-
-<ins>Quality</ins> can show, for example, *direction* (back/forth) when applying replacement.  
-
-<ins>Destination</ins> can be any destination (such as a *file*) where 
-the pattern is searched.
-
-## Authors
-Vitali Avagyan: [@vitali87](https://github.com/vitali87)
-
+| Verb | Purpose | Example |
+|------|---------|---------|
+| `show` | Observe/Search | `u7 show ip external` |
+| `make` | Create/Clone | `u7 make password 16` |
+| `drop` | Delete/Kill | `u7 drop file temp.txt` |
+| `convert` | Transform/Extract | `u7 convert archive to files backup.tar.gz` |
+| `move` | Relocate/Rename | `u7 move file.txt to newname.txt` |
+| `set` | Modify/Config | `u7 set text "old" to "new" in file.txt` |
+| `run` | Execute/Control | `u7 run job "echo done" in 5s` |
 
 ## Installation
 
-Put ```utility.sh``` file into a location of your choice, e.g. into 
-```~/Documents/utility/```. Then add this line to your```~/.bashrc```file:
+Requires [Nix](https://nixos.org/download.html) with flakes enabled.
 
-```commandline
-source ~/Documents/utility/utility.sh
-```
-Note: if you are using `zsh` shell, then add these two lines (bash completion script compatibility mode) before sourcing the `.sh` file:
-
-```commandline
-autoload bashcompinit
-bashcompinit
-source ~/Documents/utility/utility.sh
+```bash
+git clone https://github.com/vitali87/utility.git
+cd utility
+nix develop
 ```
 
-Install the required packages to run all functions:
-```commandline
-make install
+You're now in a reproducible shell with all dependencies and `u7` ready to use.
+
+## Usage
+
+```bash
+# Get help
+u7 --help
+u7 show --help
+
+# Network
+u7 show ip external
+u7 show ip internal
+u7 show ssl google.com
+
+# Files
+u7 show files match "TODO" ./src
+u7 show files modified
+u7 show csv data.csv limit 10
+
+# System
+u7 show info cpu
+u7 show info disk
+u7 show processes top_cpu
+
+# Create
+u7 make dir myproject
+u7 make password 32
+u7 make archive backup.tar.gz ./src
+
+# Transform
+u7 convert archive to files backup.tar.gz
+u7 convert png to jpg image.png
+u7 convert json to yaml config.json
+
+# Modify
+u7 set text "foo" to "bar" in file.txt
+u7 set perms 755 script.sh
+
+# Execute
+u7 run job "echo done" in 10s
+u7 run background ./long-task.sh
 ```
 
-## Usage/Examples
+## Why u7?
 
-Navigate to the desired folder (or alternatively specify the full path) containing the archive file - thunderbird in this example - and execute the following command:
-```commandline
-extract thunderbird-91.3.0.tar.bz2
-```
+- **Minimal vocabulary**: 7 verbs cover all Unix operations
+- **Consistent grammar**: `u7 <verb> <entity> [operator] [args]`
+- **AI-friendly**: Designed for both humans and AI agents
+- **Reproducible**: Nix ensures identical environments everywhere
+- **Cross-platform**: Works on Linux and macOS
 
+## Author
 
-## Running Tests
-
-To run tests, run the following command
-
-```commandline
-TBC
-```
-
-It will fail with an informative message.
-
-
-## Related
-
-Here are some related projects:
-
-
-
-## Optimisations
-
-Optimisations in the code are highly welcomed:
-- refactors
-- performance improvements
-- accessibility
-
+Vitali Avagyan: [@vitali87](https://github.com/vitali87)
 
 ## License
 
 [![MIT License](https://img.shields.io/apm/l/atomic-design-ui.svg?)](https://choosealicense.com/licenses/mit/)
 
-
-
-## Other Common Github Profile Sections
-👩‍💻 I'm currently working on: https://github.com/vitali87/python-CLI
-
-🧠 I'm currently learning advanced OOP: https://github.com/vitali87/oop_book
-
-👯‍♀️ I'm looking to collaborate on anything related to data science, linux, python and cloud
-
-🤔 I'm looking for help with new ideas for automation
-
-💬 Ask me about anything tech related.
-
-📫 How to reach me eheva87@gmail.com
-
-😄 Pronouns he/his
-
-⚡️ Fun fact...
-
-
-## 🛠 Skills
-Amazon Web Services (AWS), R, Python, MatLab, MySQL, GNU/Linux, Apache Spark, AIMMS/GAMS, Kubernetes
-
-
-## 🔗 Links
-[![linkedin](https://img.shields.io/badge/linkedin-0A66C2?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/vitali-avagyan-a1566234/)
-
-
-# Hi, I'm Vitali! 👋
-
-
-## 🚀 About Me
-Highly skilled Data Scientist/ML Engineer specialised in statistics, cloud/Big Data computing, optimisation, simulation, and software engineering.
-
-Hands-on experience with many programming, modelling, and database languages including R, Python, MatLab, SQL, AIMMS/GAMS with their various accompanying packages. Proficient in data aggregation, visualization, statistical/ machine learning, and optimisation techniques applied to energy, finance, and supply chain/logistics sectors.
-
-Well-versed with Linux (Kali) and cloud-based programming techniques in Amazon Web Services (AWS), distributed Machine Learning (Apache Spark), and Deep Learning (Keras/TF).
-
-Excellent writing, verbal and communication skills. Has very good interpersonal and transferable skills demonstrated by the outcome/impact of conducted work both verbally and through infographics/presentation.
-
-## Contributing
-
-Contributions are always welcome!
-
-See `contributing.md` for ways to get started.
-
-Please adhere to this project's `code of conduct`.
-
-
-## Deployment
-
-Coming soon...
-
-
-## Documentation
-
-Coming soon...
-
-
-## Environment Variables
-
-To run this project, you will need to add the following environment variables to your .env file
-
-
-
-## Feedback
-
-If you have any feedback, please reach out to us at eheva87@gmail.com
-
-
-## Roadmap
-
-- Additional utility functions
-
-- more things to come
-
-
-## Run Locally
-
-Clone the project
-
-```bash
-  git clone https://github.com/vitali87/utility.git
-```
-
-Go to the project directory
-
-```bash
-  cd utility
-```
-
-Install dependencies
-
-```commandline
-make install
-```
-
-
 ## Support
 
-For support, email **eheva87@gmail.com** or send a message to my [LinkedIn](https://www.linkedin.com/in/vitali-avagyan-a1566234/)
-
-## Support my work
-
-If you find this project helpful and would like to support my work, you can buy me a coffee:
+If you find this project helpful:
 
 <a href="https://www.buymeacoffee.com/vitali87" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/default-orange.png" alt="Buy Me A Coffee" height="41" width="174"></a>
