@@ -38,12 +38,13 @@
                     pkgs.rsync
 
                     pkgs.openssl
+                    pkgs.yq-go
+                    pkgs.git
                 ];
 
                 shellHook = ''
-                    echo "Universal 7 Environment Loaded"
-                    echo "Verbs: VIEW MAKE DROP CAST MOVE TWEAL RUN"
-                    echo ""
+                    echo "u7 - Universal 7 CLI"
+                    echo "Verbs: show make drop convert move set run"
                     source ./utility.sh
                 '';
             };
