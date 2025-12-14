@@ -40,12 +40,14 @@
                     pkgs.openssl
                     pkgs.yq-go
                     pkgs.git
+                    pkgs.bash-completion
                 ];
 
                 shellHook = ''
+                    source ${pkgs.bash-completion}/etc/profile.d/bash_completion.sh
+                    source ./utility.sh
                     echo "u7 - Universal 7 CLI"
                     echo "Verbs: show make drop convert move set run"
-                    source ./utility.sh
                 '';
             };
         };
