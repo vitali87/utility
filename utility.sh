@@ -96,10 +96,6 @@ _u7_show() {
       sed -n "${num}p" "$file"
       ;;
 
-    weather)
-      curl -s "wttr.in/$1"
-      ;;
-
     ssl)
       local domain="$1"
       if [[ -z "$domain" ]]; then
@@ -193,7 +189,6 @@ Entities:
   csv <file> [limit N]
   json <file> [limit N]
   line <number> <file>
-  weather <city>
   ssl <domain>
   files <match|modified|big> [pattern] [path]
   diff <file1> <file2>
@@ -863,7 +858,7 @@ _u7_completions() {
     2)
       case "$prev" in
         show)
-          COMPREPLY=($(compgen -W "ip csv json line weather ssl files diff info processes port usage network git definition functions --help" -- "$cur"))
+          COMPREPLY=($(compgen -W "ip csv json line ssl files diff info processes port usage network git definition functions --help" -- "$cur"))
           ;;
         make)
           COMPREPLY=($(compgen -W "dir dircd file password user copy link archive sequence --help" -- "$cur"))
