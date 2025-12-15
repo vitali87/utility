@@ -100,20 +100,30 @@ _u7_show() {
     csv)
       _u7_require qsv || return 1
       local file="$1"
+      # $2 is "limit" keyword, $3 is the actual number
       local limit="${3:-25}"
       if [[ ! -f "$file" ]]; then
         echo "File not found: $file"
         return 1
+      fi
+      # If user didn't provide "limit" keyword, use default
+      if [[ "$2" == "limit" && -n "$3" ]]; then
+        limit="$3"
       fi
       qsv table "$file" | head -n "$((limit + 1))"
       ;;
 
     json)
       local file="$1"
-      local limit="${3:-10}"
+      # $2 is "limit" keyword, $3 is the actual number
+      local limit="10"
       if [[ ! -f "$file" ]]; then
         echo "File not found: $file"
         return 1
+      fi
+      # If user provided "limit" keyword, use their number
+      if [[ "$2" == "limit" && -n "$3" ]]; then
+        limit="$3"
       fi
       jq ".[:$limit]" "$file"
       ;;
