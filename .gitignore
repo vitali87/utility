@@ -132,3 +132,6 @@ dmypy.json
 .Rhistory
 .RData
 .idea
+
+# Warp AI guidance file
+WARP.md
