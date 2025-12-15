@@ -511,13 +511,29 @@ _u7_convert() {
 
       local lowercase=$(echo "$archive" | tr '[:upper:]' '[:lower:]')
 
+      # Helper function to get output filename for single-file archives
+      _get_output_file() {
+        local archive="$1"
+        local dest="$2"
+        if [[ -d "$dest" ]]; then
+          # Dest is directory, derive filename from archive
+          local basename=$(basename "$archive")
+          # Remove compression extension
+          echo "$dest/${basename%.*}"
+        else
+          # Dest is a file path
+          echo "$dest"
+        fi
+      }
+
       case "$lowercase" in
         *.tar.xz|*.tar.gz|*.tar.bz2|*.tar|*.tgz|*.tbz|*.tbz2|*.txz|*.tb2)
           tar -xvf "$archive" -C "$dest" ;;
         *.bz|*.bz2)
           bzip2 -d -k "$archive" ;;
         *.gz)
-          gunzip -c "$archive" > "$dest" ;;
+          local outfile=$(_get_output_file "$archive" "$dest")
+          gunzip -c "$archive" > "$outfile" ;;
         *.zip|*.jar)
           unzip "$archive" -d "$dest" ;;
         *.rar)
@@ -527,9 +543,11 @@ _u7_convert() {
         *.tar.lzma)
           tar -xf "$archive" -C "$dest" --lzma ;;
         *.xz)
-          unxz -c "$archive" > "$dest" ;;
+          local outfile=$(_get_output_file "$archive" "$dest")
+          unxz -c "$archive" > "$outfile" ;;
         *.lzma)
-          unlzma -c "$archive" > "$dest" ;;
+          local outfile=$(_get_output_file "$archive" "$dest")
+          unlzma -c "$archive" > "$outfile" ;;
         *.iso)
           sudo mount -o loop "$archive" "$dest" ;;
         *.img|*.dmg)

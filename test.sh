@@ -120,6 +120,21 @@ else
     ((FAILED++))
 fi
 
+# Test 8: Archive extraction to directory
+echo "test content" > testfile.txt
+gzip testfile.txt  # Creates testfile.txt.gz
+mkdir extract_dir
+u7 convert archive to files testfile.txt.gz extract_dir >/dev/null 2>&1
+if [[ -f "extract_dir/testfile.txt" ]]; then
+    echo -e "${GREEN}✓${NC} Archive extraction to directory works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Archive extraction to directory works"
+    echo "  Expected: extract_dir/testfile.txt"
+    ls -la extract_dir/
+    ((FAILED++))
+fi
+
 # Cleanup
 cd /
 rm -rf "$TEST_DIR"
