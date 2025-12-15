@@ -2,6 +2,18 @@
 
 _U7_ARCHIVE_FORMATS=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .tbz .tbz2 .txz .tb2 .bz .bz2 .gz .zip .jar .Z .rar .7z .tar.lzma .xz .lzma .iso .img .dmg)
 
+# Check if a command is available
+_u7_require() {
+  local cmd="$1"
+  local msg="${2:-$cmd}"
+  if ! command -v "$cmd" &> /dev/null; then
+    echo "Error: Required command '$cmd' not found."
+    echo "Install it or run in 'nix develop' shell for full functionality."
+    return 1
+  fi
+  return 0
+}
+
 u7() {
   local verb="$1"
   shift
@@ -71,13 +83,14 @@ _u7_show() {
       ;;
 
     csv)
+      _u7_require qsv || return 1
       local file="$1"
       local limit="${3:-25}"
       if [[ ! -f "$file" ]]; then
         echo "File not found: $file"
         return 1
       fi
-      csvlook "$file" | head -n "$((limit + 1))"
+      qsv table "$file" | head -n "$((limit + 1))"
       ;;
 
     json)
@@ -527,7 +540,12 @@ _u7_convert() {
           convert "$input" "$output"
           ;;
         webp)
-          cwebp -q 80 "$input" -o "$output"
+          if ! _u7_require cwebp; then
+            echo "Falling back to ImageMagick for WebP conversion"
+            convert "$input" "$output"
+          else
+            cwebp -q 80 "$input" -o "$output"
+          fi
           ;;
         *)
           convert "$input" "$output"
@@ -546,7 +564,12 @@ _u7_convert() {
 
       case "$to_fmt" in
         gif)
-          ffmpeg -i "$input" -pix_fmt rgb24 -r 10 -f gif - | gifsicle --optimize=3 --delay=5 > "$output"
+          if ! _u7_require gifsicle; then
+            echo "Falling back to ffmpeg-only conversion"
+            ffmpeg -i "$input" "$output"
+          else
+            ffmpeg -i "$input" -pix_fmt rgb24 -r 10 -f gif - | gifsicle --optimize=3 --delay=5 > "$output"
+          fi
           ;;
         *)
           ffmpeg -i "$input" "$output"
@@ -570,6 +593,10 @@ _u7_convert() {
       ;;
 
     case)
+      if ! _u7_require rename "rename (perl-rename or prename)"; then
+        echo "Hint: Install 'rename' package (perl-rename on Debian/Ubuntu, rename on others)"
+        return 1
+      fi
       if [[ "$1" == "upper" && "$2" == "to" && "$3" == "lower" ]]; then
         rename 'y/A-Z/a-z/' "${@:4}"
       elif [[ "$1" == "lower" && "$2" == "to" && "$3" == "upper" ]]; then
@@ -580,6 +607,10 @@ _u7_convert() {
       ;;
 
     spaces)
+      if ! _u7_require rename "rename (perl-rename or prename)"; then
+        echo "Hint: Install 'rename' package (perl-rename on Debian/Ubuntu, rename on others)"
+        return 1
+      fi
       if [[ "$1" == "to" && "$2" == "underscores" ]]; then
         if [[ -n "$3" ]]; then
           rename 'y/ /_/' "$3"

@@ -43,6 +43,10 @@
                             pkgs.yq-go
                             pkgs.git
                             pkgs.bash-completion
+
+                            pkgs.libwebp
+                            pkgs.gifsicle
+                            pkgs.rename
                         ];
 
                         shellHook = ''
