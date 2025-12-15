@@ -598,9 +598,11 @@ _u7_convert() {
         return 1
       fi
       if [[ "$1" == "upper" && "$2" == "to" && "$3" == "lower" ]]; then
-        rename 'y/A-Z/a-z/' "${@:4}"
+        # Convert only basename to lowercase, preserve extension case
+        rename 's/^(.*)(\.\w+)$/lc($1) . $2/e' "${@:4}"
       elif [[ "$1" == "lower" && "$2" == "to" && "$3" == "upper" ]]; then
-        rename 'y/a-z/A-Z/' "${@:4}"
+        # Convert only basename to uppercase, preserve extension case
+        rename 's/^(.*)(\.\w+)$/uc($1) . $2/e' "${@:4}"
       else
         echo "Usage: u7 convert case <upper|lower> to <lower|upper> <files...>"
       fi
