@@ -14,6 +14,21 @@ _u7_require() {
   return 0
 }
 
+# Escape special regex characters for literal sed replacement
+_u7_escape_sed() {
+  local str="$1"
+  # Escape sed special chars: \ first, then . * [ ] ^ $ /
+  str="${str//\\/\\\\}"  # Escape backslash
+  str="${str//\//\\/}"    # Escape forward slash
+  str="${str//./\\.}"     # Escape dot
+  str="${str//\*/\\*}"    # Escape asterisk
+  str="${str//\[/\\[}"    # Escape [
+  str="${str//\]/\\]}"    # Escape ]
+  str="${str//\^/\\^}"    # Escape ^
+  str="${str//\$/\\$}"    # Escape $
+  printf '%s' "$str"
+}
+
 u7() {
   local verb="$1"
   shift
@@ -709,10 +724,17 @@ _u7_set() {
       fi
       local target="$5"
 
+      # Escape special regex characters for literal matching
+      local old_escaped=$(_u7_escape_sed "$old")
+      local new_escaped=$(_u7_escape_sed "$new")
+
       if [[ -d "$target" ]]; then
-        grep -rl "$old" "$target" | xargs sed -i'' "s/$old/$new/g"
+        # Use grep with -F for literal string matching, then sed for replacement
+        grep -rlF "$old" "$target" 2>/dev/null | while IFS= read -r file; do
+          sed -i'' "s/$old_escaped/$new_escaped/g" "$file"
+        done
       else
-        sed -i'' "s/$old/$new/g" "$target"
+        sed -i'' "s/$old_escaped/$new_escaped/g" "$target"
       fi
       ;;
 
