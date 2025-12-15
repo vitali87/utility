@@ -150,8 +150,8 @@ _u7_show() {
           local path="${3:-.}"
           grep -RnisI "$pattern" "$path"
           ;;
-        modified) find . -type f -exec stat -f "%m %N" {} \; 2>/dev/null | sort -rn | head -20 | cut -d' ' -f2- ;;
-        big) find . -type f -exec stat -f "%z %N" {} \; 2>/dev/null | sort -rn | head -10 ;;
+        modified) find . -type f -exec stat -c "%Y %n" {} \; | sort -rn | head -20 | cut -d' ' -f2- ;;
+        big) find . -type f -exec stat -c "%s %n" {} \; | sort -rn | head -10 ;;
         *) echo "Usage: u7 show files <match|modified|big> [pattern] [path]" ;;
       esac
       ;;
@@ -187,7 +187,7 @@ _u7_show() {
     usage)
       case "$1" in
         disk) du -sh "${2:-.}" ;;
-        directories) du -h --max-depth "${2:-1}" 2>/dev/null | sort -hr || du -h -d "${2:-1}" | sort -hr ;;
+        directories) du -h --max-depth "${2:-1}" | sort -hr ;;
         *) echo "Usage: u7 show usage <disk|directories> [path|depth]" ;;
       esac
       ;;

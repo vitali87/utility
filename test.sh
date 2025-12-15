@@ -135,6 +135,151 @@ else
     ((FAILED++))
 fi
 
+# Test 9: Archive creation
+echo "content" > file1.txt
+echo "more" > file2.txt
+u7 make archive test.tar.gz file1.txt file2.txt >/dev/null 2>&1
+if [[ -f "test.tar.gz" ]]; then
+    echo -e "${GREEN}✓${NC} Archive creation works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Archive creation works"
+    ((FAILED++))
+fi
+
+# Test 10: Show line from file
+echo -e "line1\nline2\nline3" > lines.txt
+result=$(u7 show line 2 lines.txt)
+assert_equals "Show specific line from file" "line2" "$result"
+
+# Test 11: File move/rename
+echo "test" > move_test.txt
+u7 move move_test.txt to renamed.txt >/dev/null 2>&1
+if [[ -f "renamed.txt" && ! -f "move_test.txt" ]]; then
+    echo -e "${GREEN}✓${NC} File move/rename works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} File move/rename works"
+    ((FAILED++))
+fi
+
+# Test 12: Copy files
+echo "original" > original.txt
+u7 make copy original.txt copy.txt >/dev/null 2>&1
+if [[ -f "copy.txt" ]]; then
+    result=$(cat copy.txt)
+    assert_equals "File copy preserves content" "original" "$result"
+else
+    echo -e "${RED}✗${NC} File copy preserves content"
+    ((FAILED++))
+fi
+
+# Test 13: Symbolic link creation
+echo "target" > link_target.txt
+u7 make link link_target.txt link.txt >/dev/null 2>&1
+if [[ -L "link.txt" ]]; then
+    echo -e "${GREEN}✓${NC} Symbolic link creation works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Symbolic link creation works"
+    ((FAILED++))
+fi
+
+# Test 14: Drop line from file
+echo -e "keep1\nremove\nkeep2" > dropline.txt
+u7 drop line 2 dropline.txt >/dev/null 2>&1
+result=$(cat dropline.txt)
+assert_equals "Drop line removes correct line" "keep1
+keep2" "$result"
+
+# Test 15: Drop duplicate lines
+echo -e "line1\nline2\nline1\nline3" > dupes.txt
+u7 drop duplicates dupes.txt >/dev/null 2>&1
+line_count=$(wc -l < dupes.txt | tr -d ' ')
+assert_equals "Drop duplicates removes duplicates" "3" "$line_count"
+
+# Test 16: Set file permissions
+touch perm_test.txt
+u7 set perms 644 perm_test.txt >/dev/null 2>&1
+# Use GNU stat which is available in nix develop
+perms=$(stat -c "%a" perm_test.txt 2>&1 | grep -o '^[0-9]*' | head -1)
+assert_equals "Set file permissions" "644" "$perms"
+
+# Test 17: Convert JSON to YAML
+echo '{"key": "value"}' > test.json
+u7 convert json to yaml test.json test.yaml >/dev/null 2>&1
+if [[ -f "test.yaml" ]]; then
+    result=$(cat test.yaml)
+    assert_contains "JSON to YAML conversion" "key: value" "$result"
+else
+    echo -e "${RED}✗${NC} JSON to YAML conversion (file not created)"
+    ((FAILED++))
+fi
+
+# Test 18: Math calculation
+result=$(u7 convert math "2+2" 2>&1)
+assert_equals "Math calculation" "4" "$result"
+
+# Test 19: Make sequence
+result=$(u7 make sequence test 3 | wc -l | tr -d ' ')
+assert_equals "Sequence generation" "3" "$result"
+
+# Test 20: Show file diff
+echo "version1" > diff1.txt
+echo "version2" > diff2.txt
+result=$(u7 show diff diff1.txt diff2.txt 2>&1)
+assert_contains "Show file diff" "version1" "$result"
+
+# Test 21: Text replacement in directory
+mkdir replace_dir
+echo "foo.bar" > replace_dir/file1.txt
+echo "foo.bar" > replace_dir/file2.txt
+u7 set text "foo.bar" to "replaced" in replace_dir >/dev/null 2>&1
+result1=$(cat replace_dir/file1.txt)
+result2=$(cat replace_dir/file2.txt)
+if [[ "$result1" == "replaced" && "$result2" == "replaced" ]]; then
+    echo -e "${GREEN}✓${NC} Text replacement in directory works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Text replacement in directory works"
+    ((FAILED++))
+fi
+
+# Test 22: Set tabs to spaces
+printf "line1\tline2" > tabs.txt
+u7 set tabs to spaces . >/dev/null 2>&1
+if grep -q "  " tabs.txt; then
+    echo -e "${GREEN}✓${NC} Convert tabs to spaces works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Convert tabs to spaces works"
+    ((FAILED++))
+fi
+
+# Test 23: Drop blank lines
+echo -e "line1\n\nline2\n\nline3" > blank.txt
+u7 drop lines blank blank.txt noblank.txt >/dev/null 2>&1
+line_count=$(wc -l < noblank.txt | tr -d ' ')
+assert_equals "Drop blank lines" "3" "$line_count"
+
+# Test 24: Show modified files
+touch -t 202301010000 old.txt
+touch new.txt
+result=$(u7 show files modified 2>&1)
+assert_contains "Show modified files" "new.txt" "$result"
+
+# Test 25: Show big files
+dd if=/dev/zero of=big.bin bs=1024 count=10 2>/dev/null
+touch small.txt
+result=$(u7 show files big 2>&1)
+assert_contains "Show big files" "big.bin" "$result"
+
+# Test 26: Show disk usage of directories
+mkdir -p subdir1 subdir2
+echo "data" > subdir1/file.txt
+result=$(u7 show usage directories 1 2>&1)
+assert_contains "Show directory disk usage" "subdir1" "$result"
+
 # Cleanup
 cd /
 rm -rf "$TEST_DIR"
