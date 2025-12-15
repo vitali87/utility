@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-_U7_ARCHIVE_FORMATS=(.tar.xz .tar.gz .tar.bz2 .tar .tgz .tbz .tbz2 .txz .tb2 .bz .bz2 .gz .zip .jar .Z .rar .7z .tar.lzma .xz .lzma .iso .img .dmg)
-
 # Check if a command is available
 _u7_require() {
   local cmd="$1"
@@ -75,7 +73,7 @@ Examples:
   u7 convert png to jpg image.png
   u7 move file.txt to newname.txt
   u7 set text "old" to "new" in file.txt
-  u7 run app vpn
+  u7 run job "echo done" in 5s
 
 Run 'u7 <verb> --help' for verb-specific help.
 EOF
@@ -258,10 +256,6 @@ _u7_make() {
       mkdir -p "$1"
       ;;
 
-    dircd)
-      mkdir -p "$1" && cd "$1"
-      ;;
-
     file)
       touch "$1"
       ;;
@@ -342,7 +336,6 @@ Usage: u7 make <entity> [arguments]
 
 Entities:
   dir <path>                    Create directory
-  dircd <path>                  Create and enter directory
   file <path>                   Create empty file
   password [length]             Generate random password (default: 16)
   user <username>               Create system user
@@ -832,16 +825,9 @@ _u7_run() {
 
   case "$entity" in
     app)
-      case "$1" in
-        vpn|cisco-anyconnect)
-          /opt/cisco/anyconnect/bin/vpnui
-          ;;
-        *)
-          echo "Unknown app: $1"
-          echo "Available: vpn"
-          return 1
-          ;;
-      esac
+      echo "Error: 'u7 run app' is not implemented."
+      echo "To run applications, use their direct commands or add custom handlers."
+      return 1
       ;;
 
     job)
@@ -905,7 +891,6 @@ u7 run - Execute/Control
 Usage: u7 run <entity> [arguments]
 
 Entities:
-  app <name>                  Launch application (vpn)
   job <cmd> in <time>         Schedule command (5s, 10m, 1h)
   script <path>               Execute shell script
   background <command>        Run command in background
@@ -944,7 +929,7 @@ _u7_completions() {
           COMPREPLY=($(compgen -W "ip csv json line ssl files diff info processes port usage network git definition functions --help" -- "$cur"))
           ;;
         make)
-          COMPREPLY=($(compgen -W "dir dircd file password user copy link archive sequence --help" -- "$cur"))
+          COMPREPLY=($(compgen -W "dir file password user copy link archive sequence --help" -- "$cur"))
           ;;
         drop)
           COMPREPLY=($(compgen -W "file dir dirs files line lines column duplicates process user --help" -- "$cur"))
@@ -960,7 +945,7 @@ _u7_completions() {
           COMPREPLY=($(compgen -W "text slashes tabs perms owner priority --help" -- "$cur"))
           ;;
         run)
-          COMPREPLY=($(compgen -W "app job script background check terminal --help" -- "$cur"))
+          COMPREPLY=($(compgen -W "job script background check terminal --help" -- "$cur"))
           ;;
       esac
       ;;
@@ -1008,7 +993,6 @@ _u7_completions() {
           ;;
         run)
           case "${words[2]}" in
-            app) COMPREPLY=($(compgen -W "vpn" -- "$cur")) ;;
             check) COMPREPLY=($(compgen -W "syntax" -- "$cur")) ; _filedir ;;
             script) _filedir ;;
           esac
