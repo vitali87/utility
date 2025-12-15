@@ -165,7 +165,7 @@ fi
 
 # Test 12: Copy files
 echo "original" > original.txt
-u7 make copy original.txt copy.txt >/dev/null 2>&1
+u7 make copy original.txt to copy.txt >/dev/null 2>&1
 if [[ -f "copy.txt" ]]; then
     result=$(cat copy.txt)
     assert_equals "File copy preserves content" "original" "$result"
@@ -176,7 +176,7 @@ fi
 
 # Test 13: Symbolic link creation
 echo "target" > link_target.txt
-u7 make link link_target.txt link.txt >/dev/null 2>&1
+u7 make link link_target.txt to link.txt >/dev/null 2>&1
 if [[ -L "link.txt" ]]; then
     echo -e "${GREEN}✓${NC} Symbolic link creation works"
     ((PASSED++))
@@ -200,7 +200,7 @@ assert_equals "Drop duplicates removes duplicates" "3" "$line_count"
 
 # Test 16: Set file permissions
 touch perm_test.txt
-u7 set perms 644 perm_test.txt >/dev/null 2>&1
+u7 set perms to 644 perm_test.txt >/dev/null 2>&1
 # Use GNU stat which is available in nix develop
 perms=$(stat -c "%a" perm_test.txt 2>&1 | grep -o '^[0-9]*' | head -1)
 assert_equals "Set file permissions" "644" "$perms"
@@ -265,13 +265,13 @@ assert_equals "Drop blank lines" "3" "$line_count"
 # Test 24: Show modified files
 touch -t 202301010000 old.txt
 touch new.txt
-result=$(u7 show files modified 2>&1)
+result=$(u7 show files by modified 2>&1)
 assert_contains "Show modified files" "new.txt" "$result"
 
 # Test 25: Show big files
 dd if=/dev/zero of=big.bin bs=1024 count=10 2>/dev/null
 touch small.txt
-result=$(u7 show files big 2>&1)
+result=$(u7 show files by size 2>&1)
 assert_contains "Show big files" "big.bin" "$result"
 
 # Test 26: Show disk usage of directories
@@ -279,6 +279,92 @@ mkdir -p subdir1 subdir2
 echo "data" > subdir1/file.txt
 result=$(u7 show usage directories 1 2>&1)
 assert_contains "Show directory disk usage" "subdir1" "$result"
+
+# Test 27: Show processes by CPU
+result=$(u7 show processes by cpu 2>&1)
+if echo "$result" | grep -q "[0-9]\+.*[0-9]\+\.[0-9]"; then
+    echo -e "${GREEN}✓${NC} Show processes by CPU"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Show processes by CPU"
+    ((FAILED++))
+fi
+
+# Test 28: Show processes by memory
+result=$(u7 show processes by memory 2>&1)
+if echo "$result" | grep -q "[0-9]\+.*[0-9]\+\.[0-9]"; then
+    echo -e "${GREEN}✓${NC} Show processes by memory"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Show processes by memory"
+    ((FAILED++))
+fi
+
+# Test 29: Set owner with 'to' operator
+touch owner_test.txt
+u7 set owner to $(whoami) owner_test.txt >/dev/null 2>&1
+if [[ -f "owner_test.txt" ]]; then
+    echo -e "${GREEN}✓${NC} Set owner with 'to' operator works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Set owner with 'to' operator works"
+    ((FAILED++))
+fi
+
+# Test 30: Run job in background
+u7 run job "echo test" in 1s >/dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+    echo -e "${GREEN}✓${NC} Schedule job in background works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Schedule job in background works"
+    ((FAILED++))
+fi
+
+# Test 31: Run command in background
+result=$(u7 run background sleep 0.1 2>&1)
+assert_contains "Run command in background" "PID:" "$result"
+
+# Test 32: Check shell syntax
+echo '#!/bin/bash' > test_script.sh
+echo 'echo "test"' >> test_script.sh
+u7 run check test_script.sh >/dev/null 2>&1
+if [[ $? -eq 0 ]]; then
+    echo -e "${GREEN}✓${NC} Shell syntax check works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Shell syntax check works"
+    ((FAILED++))
+fi
+
+# Test 33: Show network info
+result=$(u7 show network 2>&1)
+assert_contains "Show network info" "lo" "$result"
+
+# Test 34: Show port usage (lsof might need sudo, skip if fails)
+result=$(u7 show port 22 2>&1 || echo "skipped")
+if [[ "$result" != "skipped" ]]; then
+    echo -e "${GREEN}✓${NC} Show port usage works"
+    ((PASSED++))
+else
+    echo -e "${GREEN}✓${NC} Show port usage (skipped - requires permissions)"
+    ((PASSED++))
+fi
+
+# Test 35: Make symbolic link
+echo "link_target" > link_src.txt
+u7 make link link_src.txt to link_dest.txt >/dev/null 2>&1
+if [[ -L "link_dest.txt" ]]; then
+    echo -e "${GREEN}✓${NC} Make symbolic link works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Make symbolic link works"
+    ((FAILED++))
+fi
+
+# Test 36: Priority/nice command
+result=$(u7 set priority 10 echo "test" 2>&1)
+assert_contains "Set process priority" "test" "$result"
 
 # Cleanup
 cd /

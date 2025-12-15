@@ -148,9 +148,14 @@ _u7_show() {
           local path="${3:-.}"
           grep -RnisI "$pattern" "$path"
           ;;
-        modified) find . -type f -exec stat -c "%Y %n" {} \; | sort -rn | head -20 | cut -d' ' -f2- ;;
-        big) find . -type f -exec stat -c "%s %n" {} \; | sort -rn | head -10 ;;
-        *) echo "Usage: u7 show files <match|modified|big> [pattern] [path]" ;;
+        by)
+          case "$2" in
+            modified) find . -type f -exec stat -c "%Y %n" {} \; | sort -rn | head -20 | cut -d' ' -f2- ;;
+            size) find . -type f -exec stat -c "%s %n" {} \; | sort -rn | head -10 ;;
+            *) echo "Usage: u7 show files by <modified|size>" ;;
+          esac
+          ;;
+        *) echo "Usage: u7 show files <match|by> [pattern|sort_type]" ;;
       esac
       ;;
 
@@ -172,9 +177,14 @@ _u7_show() {
     processes)
       case "$1" in
         running) ps aux ;;
-        top_cpu) ps aux | sort -k3 -rn | head ;;
-        top_memory) ps aux | sort -k4 -rn | head ;;
-        *) echo "Usage: u7 show processes <running|top_cpu|top_memory>" ;;
+        by)
+          case "$2" in
+            cpu) ps aux | sort -k3 -rn | head ;;
+            memory) ps aux | sort -k4 -rn | head ;;
+            *) echo "Usage: u7 show processes by <cpu|memory>" ;;
+          esac
+          ;;
+        *) echo "Usage: u7 show processes <running|by> [cpu|memory]" ;;
       esac
       ;;
 
@@ -226,10 +236,10 @@ Entities:
   json <file> [limit N]
   line <number> <file>
   ssl <domain>
-  files <match|modified|big> [pattern] [path]
+  files <match|by> [pattern|sort_type]
   diff <file1> <file2>
   info <cpu|memory|disk>
-  processes <running|top_cpu|top_memory>
+  processes <running|by> [cpu|memory]
   port <number>
   usage <disk|directories> [path|depth]
   network
@@ -276,13 +286,21 @@ _u7_make() {
 
     copy)
       local src="$1"
-      local dst="$2"
+      if [[ "$2" != "to" ]]; then
+        echo "Usage: u7 make copy <source> to <destination>"
+        return 1
+      fi
+      local dst="$3"
       cp -r "$src" "$dst"
       ;;
 
     link)
       local src="$1"
-      local dst="$2"
+      if [[ "$2" != "to" ]]; then
+        echo "Usage: u7 make link <source> to <destination>"
+        return 1
+      fi
+      local dst="$3"
       ln -s "$src" "$dst"
       ;;
 
@@ -339,8 +357,8 @@ Entities:
   file <path>                   Create empty file
   password [length]             Generate random password (default: 16)
   user <username>               Create system user
-  copy <src> <dst>              Copy file/directory
-  link <src> <dst>              Create symbolic link
+  copy <src> to <dst>           Copy file/directory
+  link <src> to <dst>           Create symbolic link
   archive <output> <files...>   Create archive (.tar.gz, .zip, .7z)
   sequence <prefix> <count>     Generate numbered sequence
 EOF
@@ -778,14 +796,22 @@ _u7_set() {
       ;;
 
     perms)
-      local mode="$1"
-      local target="$2"
+      if [[ "$1" != "to" ]]; then
+        echo "Usage: u7 set perms to <mode> <file>"
+        return 1
+      fi
+      local mode="$2"
+      local target="$3"
       chmod "$mode" "$target"
       ;;
 
     owner)
-      local user="$1"
-      local target="$2"
+      if [[ "$1" != "to" ]]; then
+        echo "Usage: u7 set owner to <user> <file>"
+        return 1
+      fi
+      local user="$2"
+      local target="$3"
       chown "$user" "$target"
       ;;
 
@@ -805,8 +831,8 @@ Entities:
   text <old> to <new> in <file>     Replace text in file(s)
   slashes <back|forward> <file>     Convert slashes
   tabs to spaces [directory]        Convert tabs to spaces
-  perms <mode> <file>               Set file permissions
-  owner <user> <file>               Set file owner
+  perms to <mode> <file>            Set file permissions
+  owner to <user> <file>            Set file owner
   priority <nice> <command>         Run with CPU priority
 EOF
       ;;
@@ -955,8 +981,8 @@ _u7_completions() {
           case "${words[2]}" in
             ip) COMPREPLY=($(compgen -W "external internal connected" -- "$cur")) ;;
             info) COMPREPLY=($(compgen -W "cpu memory disk" -- "$cur")) ;;
-            processes) COMPREPLY=($(compgen -W "running top_cpu top_memory" -- "$cur")) ;;
-            files) COMPREPLY=($(compgen -W "match modified big" -- "$cur")) ;;
+            processes) COMPREPLY=($(compgen -W "running by" -- "$cur")) ;;
+            files) COMPREPLY=($(compgen -W "match by" -- "$cur")) ;;
             usage) COMPREPLY=($(compgen -W "disk directories" -- "$cur")) ;;
             git) COMPREPLY=($(compgen -W "authors branches" -- "$cur")) ;;
             *) _filedir ;;
