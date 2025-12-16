@@ -138,7 +138,7 @@ fi
 # Test 9: Archive creation
 echo "content" > file1.txt
 echo "more" > file2.txt
-u7 make archive test.tar.gz file1.txt file2.txt >/dev/null 2>&1
+u7 make archive test.tar.gz from file1.txt file2.txt >/dev/null 2>&1
 if [[ -f "test.tar.gz" ]]; then
     echo -e "${GREEN}✓${NC} Archive creation works"
     ((PASSED++))
@@ -149,7 +149,7 @@ fi
 
 # Test 10: Show line from file
 echo -e "line1\nline2\nline3" > lines.txt
-result=$(u7 show line 2 lines.txt)
+result=$(u7 show line 2 from lines.txt)
 assert_equals "Show specific line from file" "line2" "$result"
 
 # Test 11: File move/rename
@@ -187,14 +187,14 @@ fi
 
 # Test 14: Drop line from file
 echo -e "keep1\nremove\nkeep2" > dropline.txt
-u7 drop line 2 dropline.txt >/dev/null 2>&1
+u7 drop line 2 from dropline.txt >/dev/null 2>&1
 result=$(cat dropline.txt)
 assert_equals "Drop line removes correct line" "keep1
 keep2" "$result"
 
 # Test 15: Drop duplicate lines
 echo -e "line1\nline2\nline1\nline3" > dupes.txt
-u7 drop duplicates dupes.txt >/dev/null 2>&1
+u7 drop duplicates in dupes.txt >/dev/null 2>&1
 line_count=$(wc -l < dupes.txt | tr -d ' ')
 assert_equals "Drop duplicates removes duplicates" "3" "$line_count"
 
@@ -216,18 +216,14 @@ else
     ((FAILED++))
 fi
 
-# Test 18: Math calculation
-result=$(u7 convert math "2+2" 2>&1)
-assert_equals "Math calculation" "4" "$result"
-
-# Test 19: Make sequence
+# Test 18: Make sequence
 result=$(u7 make sequence test 3 | wc -l | tr -d ' ')
 assert_equals "Sequence generation" "3" "$result"
 
 # Test 20: Show file diff
 echo "version1" > diff1.txt
 echo "version2" > diff2.txt
-result=$(u7 show diff diff1.txt diff2.txt 2>&1)
+result=$(u7 show diff diff1.txt to diff2.txt 2>&1)
 assert_contains "Show file diff" "version1" "$result"
 
 # Test 21: Text replacement in directory
@@ -258,7 +254,7 @@ fi
 
 # Test 23: Drop blank lines
 echo -e "line1\n\nline2\n\nline3" > blank.txt
-u7 drop lines blank blank.txt noblank.txt >/dev/null 2>&1
+u7 drop lines blank from blank.txt to noblank.txt >/dev/null 2>&1
 line_count=$(wc -l < noblank.txt | tr -d ' ')
 assert_equals "Drop blank lines" "3" "$line_count"
 
@@ -363,8 +359,54 @@ else
 fi
 
 # Test 36: Priority/nice command
-result=$(u7 set priority 10 echo "test" 2>&1)
-assert_contains "Set process priority" "test" "$result"
+result=$(u7 run priority 10 echo "test" 2>&1)
+assert_contains "Run with priority" "test" "$result"
+
+# Test 37: Drop duplicates with 'from' operator (alternative)
+echo -e "a\nb\na\nc" > dupes2.txt
+u7 drop duplicates from dupes2.txt >/dev/null 2>&1
+line_count=$(wc -l < dupes2.txt | tr -d ' ')
+assert_equals "Drop duplicates with 'from' operator" "3" "$line_count"
+
+# Test 38: Drop column from CSV
+echo -e "a,b,c\n1,2,3\n4,5,6" > columns.csv
+u7 drop column 2 from columns.csv >/dev/null 2>&1
+result=$(head -1 columns.csv)
+assert_equals "Drop column from CSV" "a,c" "$result"
+
+# Test 39: Show line from file with 'from' operator
+echo -e "first\nsecond\nthird" > showline.txt
+result=$(u7 show line 2 from showline.txt 2>&1)
+assert_equals "Show line from file" "second" "$result"
+
+# Test 40: Show diff with 'to' operator
+echo "version1" > diff_a.txt
+echo "version2" > diff_b.txt
+result=$(u7 show diff diff_a.txt to diff_b.txt 2>&1)
+assert_contains "Show diff with 'to' operator" "version" "$result"
+
+# Test 41: Make archive with 'from' operator (zip format)
+echo "zip_content" > zip_file.txt
+u7 make archive test_archive.zip from zip_file.txt >/dev/null 2>&1
+if [[ -f "test_archive.zip" ]]; then
+    echo -e "${GREEN}✓${NC} Make archive with 'from' operator"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Make archive with 'from' operator"
+    ((FAILED++))
+fi
+
+# Test 42: Set slashes to back in file
+echo "/path/to/file" > slashtest.txt
+u7 set slashes to back in slashtest.txt >/dev/null 2>&1
+result=$(cat slashtest.txt)
+assert_equals "Set slashes to back" "\\path\\to\\file" "$result"
+
+# Test 43: Set slashes to forward in file
+echo '\\path\\to\\file' > slashtest2.txt
+u7 set slashes to forward in slashtest2.txt >/dev/null 2>&1
+result=$(cat slashtest2.txt)
+assert_equals "Set slashes to forward" "/path/to/file" "$result"
 
 # Cleanup
 cd /

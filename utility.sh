@@ -128,7 +128,11 @@ _u7_show() {
 
     line)
       local num="$1"
-      local file="$2"
+      if [[ "$2" != "from" ]]; then
+        echo "Usage: u7 show line <number> from <file>"
+        return 1
+      fi
+      local file="$3"
       sed -n "${num}p" "$file"
       ;;
 
@@ -161,7 +165,11 @@ _u7_show() {
 
     diff)
       local file1="$1"
-      local file2="$2"
+      if [[ "$2" != "to" ]]; then
+        echo "Usage: u7 show diff <file1> to <file2>"
+        return 1
+      fi
+      local file2="$3"
       diff "$file1" "$file2"
       ;;
 
@@ -234,10 +242,10 @@ Entities:
   ip <external|internal|connected>
   csv <file> [limit N]
   json <file> [limit N]
-  line <number> <file>
+  line <number> from <file>
   ssl <domain>
   files <match|by> [pattern|sort_type]
-  diff <file1> <file2>
+  diff <file1> to <file2>
   info <cpu|memory|disk>
   processes <running|by> [cpu|memory]
   port <number>
@@ -306,7 +314,11 @@ _u7_make() {
 
     archive)
       local output="$1"
-      shift
+      if [[ "$2" != "from" ]]; then
+        echo "Usage: u7 make archive <output> from <files...>"
+        return 1
+      fi
+      shift 2
       local format="${output##*.}"
       case "$format" in
         gz)
@@ -359,7 +371,7 @@ Entities:
   user <username>               Create system user
   copy <src> to <dst>           Copy file/directory
   link <src> to <dst>           Create symbolic link
-  archive <output> <files...>   Create archive (.tar.gz, .zip, .7z)
+  archive <output> from <files...>  Create archive
   sequence <prefix> <count>     Generate numbered sequence
 EOF
       ;;
@@ -419,38 +431,50 @@ _u7_drop() {
 
     line)
       local num="$1"
-      local file="$2"
+      if [[ "$2" != "from" ]]; then
+        echo "Usage: u7 drop line <number> from <file>"
+        return 1
+      fi
+      local file="$3"
       if [[ -z "$num" || -z "$file" ]]; then
-        echo "Usage: u7 drop line <number> <file>"
+        echo "Usage: u7 drop line <number> from <file>"
         return 1
       fi
       sed -i'' "${num}d" "$file"
       ;;
 
     lines)
-      if [[ "$1" == "blank" ]]; then
-        local src="$2"
-        local dst="$3"
+      if [[ "$1" == "blank" && "$2" == "from" && "$4" == "to" ]]; then
+        local src="$3"
+        local dst="$5"
         grep . "$src" > "$dst"
       else
-        echo "Usage: u7 drop lines blank <input> <output>"
+        echo "Usage: u7 drop lines blank from <input> to <output>"
       fi
       ;;
 
     column)
       local num="$1"
-      local file="$2"
+      if [[ "$2" != "from" ]]; then
+        echo "Usage: u7 drop column <number> from <file.csv>"
+        return 1
+      fi
+      local file="$3"
       if [[ -z "$num" || -z "$file" ]]; then
-        echo "Usage: u7 drop column <number> <file.csv>"
+        echo "Usage: u7 drop column <number> from <file.csv>"
         return 1
       fi
       cut -d',' -f"$num" --complement "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
       ;;
 
     duplicates)
-      local file="$1"
+      if [[ "$1" != "in" && "$1" != "from" ]]; then
+        echo "Usage: u7 drop duplicates in|from <file>"
+        return 1
+      fi
+      local file="$2"
       if [[ -z "$file" ]]; then
-        echo "Usage: u7 drop duplicates <file>"
+        echo "Usage: u7 drop duplicates in|from <file>"
         return 1
       fi
       awk '!x[$0]++' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
@@ -484,10 +508,10 @@ Entities:
   dir <path>                    Delete directory (with confirmation)
   dirs empty                    Delete all empty directories
   files except <pattern>        Delete all files except pattern
-  line <number> <file>          Delete line from file
-  lines blank <input> <output>  Remove blank lines
-  column <number> <file.csv>    Delete column from CSV
-  duplicates <file>             Remove duplicate lines
+  line <number> from <file>     Delete line from file
+  lines blank from <in> to <out>  Remove blank lines
+  column <number> from <file>  Delete column from CSV
+  duplicates in|from <file>     Remove duplicate lines
   process <pid>                 Kill process
   user <username>               Delete system user
 EOF
@@ -678,11 +702,6 @@ _u7_convert() {
       fi
       ;;
 
-    math)
-      local expr="$1"
-      echo "scale=10; $expr" | bc -l
-      ;;
-
     --help|-h)
       cat << 'EOF'
 u7 convert - Transform/Extract
@@ -700,7 +719,6 @@ Entities:
   case upper to lower <files...>         Rename to lowercase
   case lower to upper <files...>         Rename to uppercase
   spaces to underscores [file]           Replace spaces in filenames
-  math "<expression>"                    Calculate math expression
 EOF
       ;;
 
@@ -778,12 +796,23 @@ _u7_set() {
       ;;
 
     slashes)
-      if [[ "$1" == "back" ]]; then
-        sed -i'' 's|/|\\|g' "$2"
-      elif [[ "$1" == "forward" ]]; then
-        sed -i'' 's|\\|/|g' "$2"
+      if [[ "$1" != "to" ]]; then
+        echo "Usage: u7 set slashes to <back|forward> in <file>"
+        return 1
+      fi
+      local direction="$2"
+      if [[ "$3" != "in" ]]; then
+        echo "Usage: u7 set slashes to <back|forward> in <file>"
+        return 1
+      fi
+      local file="$4"
+      if [[ "$direction" == "back" ]]; then
+        sed -i'' 's|/|\\|g' "$file"
+      elif [[ "$direction" == "forward" ]]; then
+        sed -i'' 's|\\\\|/|g' "$file"
       else
-        echo "Usage: u7 set slashes <back|forward> <file>"
+        echo "Usage: u7 set slashes to <back|forward> in <file>"
+        return 1
       fi
       ;;
 
@@ -815,12 +844,6 @@ _u7_set() {
       chown "$user" "$target"
       ;;
 
-    priority)
-      local niceness="$1"
-      shift
-      nice -n "$niceness" "$@"
-      ;;
-
     --help|-h)
       cat << 'EOF'
 u7 set - Modify/Config
@@ -828,12 +851,11 @@ u7 set - Modify/Config
 Usage: u7 set <entity> [arguments]
 
 Entities:
-  text <old> to <new> in <file>     Replace text in file(s)
-  slashes <back|forward> <file>     Convert slashes
-  tabs to spaces [directory]        Convert tabs to spaces
-  perms to <mode> <file>            Set file permissions
-  owner to <user> <file>            Set file owner
-  priority <nice> <command>         Run with CPU priority
+  text <old> to <new> in <file>           Replace text in file(s)
+  slashes to <back|forward> in <file>     Convert slashes
+  tabs to spaces [directory]              Convert tabs to spaces
+  perms to <mode> <file>                  Set file permissions
+  owner to <user> <file>                  Set file owner
 EOF
       ;;
 
@@ -910,6 +932,12 @@ _u7_run() {
       done
       ;;
 
+    priority)
+      local niceness="$1"
+      shift
+      nice -n "$niceness" "$@"
+      ;;
+
     --help|-h)
       cat << 'EOF'
 u7 run - Execute/Control
@@ -920,6 +948,7 @@ Entities:
   job <cmd> in <time>         Schedule command (5s, 10m, 1h)
   script <path>               Execute shell script
   background <command>        Run command in background
+  priority <nice> <command>   Run with CPU priority
   check syntax                Check all .sh files syntax
   check <file>                Check single file syntax
   terminal [count]            Open new terminal(s)
@@ -961,17 +990,17 @@ _u7_completions() {
           COMPREPLY=($(compgen -W "file dir dirs files line lines column duplicates process user --help" -- "$cur"))
           ;;
         convert)
-          COMPREPLY=($(compgen -W "archive files png jpg jpeg gif video json case spaces math --help" -- "$cur"))
+COMPREPLY=($(compgen -W "archive files png jpg jpeg gif video json case spaces --help" -- "$cur"))
           ;;
         move)
           COMPREPLY=($(compgen -W "sync --help" -- "$cur"))
           _filedir
           ;;
         set)
-          COMPREPLY=($(compgen -W "text slashes tabs perms owner priority --help" -- "$cur"))
+COMPREPLY=($(compgen -W "text slashes tabs perms owner --help" -- "$cur"))
           ;;
         run)
-          COMPREPLY=($(compgen -W "job script background check terminal --help" -- "$cur"))
+COMPREPLY=($(compgen -W "job script background priority check terminal --help" -- "$cur"))
           ;;
       esac
       ;;
@@ -1028,4 +1057,6 @@ _u7_completions() {
   esac
 }
 
-complete -F _u7_completions u7
+if [[ $- == *i* ]]; then
+  complete -F _u7_completions u7
+fi
