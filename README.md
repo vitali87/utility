@@ -10,13 +10,13 @@ A unified command-line interface with 7 intuitive verbs for humans and AI agents
 
 | Verb | Purpose | Example |
 |------|---------|---------|
-| `show` | Observe/Search | `u7 show ip external` |
-| `make` | Create/Clone | `u7 make password 16` |
-| `drop` | Delete/Kill | `u7 drop file temp.txt` |
-| `convert` | Transform/Extract | `u7 convert archive to files backup.tar.gz` |
-| `move` | Relocate/Rename | `u7 move file.txt to newname.txt` |
-| `set` | Modify/Config | `u7 set text "old" to "new" in file.txt` |
-| `run` | Execute/Control | `u7 run job "echo done" in 5s` |
+| `sh` | Observe/Search | `u7 sh ip external` |
+| `mk` | Create/Clone | `u7 mk password 16` |
+| `dr` | Delete/Kill | `u7 dr file temp.txt` |
+| `cv` | Transform/Extract | `u7 cv archive to files from backup.tar.gz` |
+| `mv` | Relocate/Rename | `u7 mv file.txt to newname.txt` |
+| `st` | Modify/Config | `u7 st text "old" to "new" in file.txt` |
+| `rn` | Execute/Control | `u7 rn job "echo done" in 5s` |
 
 ## Installation
 
@@ -35,46 +35,47 @@ You're now in a reproducible shell with all dependencies and `u7` ready to use.
 ```bash
 # Get help
 u7 --help
-u7 show --help
+u7 sh --help
 
 # Network
-u7 show ip external
-u7 show ip internal
-u7 show ssl google.com
+u7 sh ip external
+u7 sh ip internal
+u7 sh ssl google.com
 
 # Files
-u7 show files match "TODO" ./src
-u7 show files modified
-u7 show csv data.csv limit 10
+u7 sh files match "TODO" in ./src
+u7 sh files by modified
+u7 sh csv data.csv limit 10
 
 # System
-u7 show info cpu
-u7 show info disk
-u7 show processes top_cpu
+u7 sh cpu
+u7 sh disk
+u7 sh processes by cpu
 
 # Create
-u7 make dir myproject
-u7 make password 32
-u7 make archive backup.tar.gz ./src
+u7 mk dir myproject
+u7 mk password 32
+u7 mk archive backup.tar.gz from ./src
 
 # Transform
-u7 convert archive to files backup.tar.gz
-u7 convert png to jpg image.png
-u7 convert json to yaml config.json
+u7 cv archive to files from backup.tar.gz
+u7 cv png to jpg from image.png yield image.jpg
+u7 cv json to yaml from config.json
 
 # Modify
-u7 set text "foo" to "bar" in file.txt
-u7 set perms 755 script.sh
+u7 st text "foo" to "bar" in file.txt
+u7 st perms to 755 on script.sh
 
 # Execute
-u7 run job "echo done" in 10s
-u7 run background ./long-task.sh
+u7 rn job "echo done" in 10s
+u7 rn background ./long-task.sh
 ```
 
 ## Why u7?
 
 - **Minimal vocabulary**: 7 verbs cover all Unix operations
 - **Consistent grammar**: `u7 <verb> <entity> [operator] [args]`
+- **Aliases**: Full verbs (`show`, `make`, `drop`, `convert`, `move`, `set`, `run`) are also supported.
 - **AI-friendly**: Designed for both humans and AI agents
 - **Reproducible**: Nix ensures identical environments everywhere
 - **Cross-platform**: Works on Linux and macOS
