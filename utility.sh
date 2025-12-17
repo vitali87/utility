@@ -27,7 +27,25 @@ _u7_escape_sed() {
   printf '%s' "$str"
 }
 
+# Dry-run mode: show command without executing
+_U7_DRY_RUN=0
+
+_u7_exec() {
+  if [[ "$_U7_DRY_RUN" == "1" ]]; then
+    echo "[dry-run] $*"
+  else
+    "$@"
+  fi
+}
+
 u7() {
+  _U7_DRY_RUN=0
+
+  if [[ "$1" == "--dry-run" || "$1" == "-n" ]]; then
+    _U7_DRY_RUN=1
+    shift
+  fi
+
   local verb="$1"
   shift
 
@@ -52,7 +70,10 @@ _u7_help() {
   cat << 'EOF'
 Universal 7 (u7) - Human+AI CLI Standard
 
-Usage: u7 <verb> <entity> [operator] [arguments]
+Usage: u7 [-n|--dry-run] <verb> <entity> [operator] [arguments]
+
+Options:
+  -n, --dry-run   Show command without executing
 
 Verbs:
   sh (show)     Observe/Search
@@ -280,11 +301,11 @@ _u7_make() {
 
   case "$entity" in
     dir)
-      mkdir -p "$1"
+      _u7_exec mkdir -p "$1"
       ;;
 
     file)
-      touch "$1"
+      _u7_exec touch "$1"
       ;;
 
     password)
@@ -298,7 +319,7 @@ _u7_make() {
         echo "Usage: u7 mk user <username>"
         return 1
       fi
-      sudo useradd "$1"
+      _u7_exec sudo useradd "$1"
       ;;
 
     copy)
@@ -308,7 +329,7 @@ _u7_make() {
         return 1
       fi
       local dst="$3"
-      cp -r "$src" "$dst"
+      _u7_exec cp -r "$src" "$dst"
       ;;
 
     link)
@@ -318,7 +339,7 @@ _u7_make() {
         return 1
       fi
       local dst="$3"
-      ln -s "$src" "$dst"
+      _u7_exec ln -s "$src" "$dst"
       ;;
 
     archive)
@@ -332,28 +353,40 @@ _u7_make() {
       case "$format" in
         gz)
           if [[ "$output" == *.tar.gz ]]; then
-            tar -czvf "$output" "$@"
+            _u7_exec tar -czvf "$output" "$@"
           else
-            gzip -c "$@" > "$output"
+            if [[ "$_U7_DRY_RUN" == "1" ]]; then
+              echo "[dry-run] gzip -c $* > $output"
+            else
+              gzip -c "$@" > "$output"
+            fi
           fi
           ;;
         bz2)
           if [[ "$output" == *.tar.bz2 ]]; then
-            tar -cjvf "$output" "$@"
+            _u7_exec tar -cjvf "$output" "$@"
           else
-            bzip2 -c "$@" > "$output"
+            if [[ "$_U7_DRY_RUN" == "1" ]]; then
+              echo "[dry-run] bzip2 -c $* > $output"
+            else
+              bzip2 -c "$@" > "$output"
+            fi
           fi
           ;;
         xz)
           if [[ "$output" == *.tar.xz ]]; then
-            tar -cJvf "$output" "$@"
+            _u7_exec tar -cJvf "$output" "$@"
           else
-            xz -c "$@" > "$output"
+            if [[ "$_U7_DRY_RUN" == "1" ]]; then
+              echo "[dry-run] xz -c $* > $output"
+            else
+              xz -c "$@" > "$output"
+            fi
           fi
           ;;
-        zip) zip -r "$output" "$@" ;;
-        7z) 7z a "$output" "$@" ;;
-        tar) tar -cvf "$output" "$@" ;;
+        zip) _u7_exec zip -r "$output" "$@" ;;
+        7z) _u7_exec 7z a "$output" "$@" ;;
+        tar) _u7_exec tar -cvf "$output" "$@" ;;
         *) echo "Unsupported format: $format" ; return 1 ;;
       esac
       ;;
@@ -403,7 +436,7 @@ _u7_drop() {
         echo "Usage: u7 dr file <path>"
         return 1
       fi
-      rm -i "$1"
+      _u7_exec rm -i "$1"
       ;;
 
     dir)
@@ -411,13 +444,13 @@ _u7_drop() {
         echo "Usage: u7 dr dir <path>"
         return 1
       fi
-      rm -ri "$1"
+      _u7_exec rm -ri "$1"
       ;;
 
     dirs)
       if [[ "$1" == "empty" ]]; then
-        find . -type d -empty -delete
-        echo "Deleted empty directories"
+        _u7_exec find . -type d -empty -delete
+        [[ "$_U7_DRY_RUN" != "1" ]] && echo "Deleted empty directories"
       else
         echo "Usage: u7 dr dirs empty"
       fi
@@ -426,12 +459,16 @@ _u7_drop() {
     files)
       if [[ "$1" == "except" ]]; then
         local pattern="$2"
-        echo "This will delete all files except '$pattern'. Continue? (y/n)"
-        read -r confirm
-        if [[ "$confirm" == "y" ]]; then
-          find . -type f ! -name "$pattern" -delete
+        if [[ "$_U7_DRY_RUN" == "1" ]]; then
+          echo "[dry-run] find . -type f ! -name $pattern -delete"
         else
-          echo "Aborted."
+          echo "This will delete all files except '$pattern'. Continue? (y/n)"
+          read -r confirm
+          if [[ "$confirm" == "y" ]]; then
+            find . -type f ! -name "$pattern" -delete
+          else
+            echo "Aborted."
+          fi
         fi
       else
         echo "Usage: u7 dr files except <pattern>"
@@ -449,14 +486,22 @@ _u7_drop() {
         echo "Usage: u7 dr line <number> from <file>"
         return 1
       fi
-      sed -i'' "${num}d" "$file"
+      if [[ "$_U7_DRY_RUN" == "1" ]]; then
+        echo "[dry-run] sed -i'' ${num}d $file"
+      else
+        sed -i'' "${num}d" "$file"
+      fi
       ;;
 
     lines)
       if [[ "$1" == "blank" && "$2" == "from" && "$4" == "yield" ]]; then
         local src="$3"
         local dst="$5"
-        grep . "$src" > "$dst"
+        if [[ "$_U7_DRY_RUN" == "1" ]]; then
+          echo "[dry-run] grep . $src > $dst"
+        else
+          grep . "$src" > "$dst"
+        fi
       else
         echo "Usage: u7 dr lines blank from <input> yield <output>"
       fi
@@ -473,7 +518,11 @@ _u7_drop() {
         echo "Usage: u7 dr column <number> from <file.csv>"
         return 1
       fi
-      cut -d',' -f"$num" --complement "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+      if [[ "$_U7_DRY_RUN" == "1" ]]; then
+        echo "[dry-run] cut -d',' -f$num --complement $file > ${file}.tmp && mv ${file}.tmp $file"
+      else
+        cut -d',' -f"$num" --complement "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+      fi
       ;;
 
     duplicates)
@@ -486,7 +535,11 @@ _u7_drop() {
         echo "Usage: u7 dr duplicates in|from <file>"
         return 1
       fi
-      awk '!x[$0]++' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+      if [[ "$_U7_DRY_RUN" == "1" ]]; then
+        echo "[dry-run] awk '!x[\$0]++' $file > ${file}.tmp && mv ${file}.tmp $file"
+      else
+        awk '!x[$0]++' "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+      fi
       ;;
 
     process)
@@ -495,7 +548,7 @@ _u7_drop() {
         echo "Usage: u7 dr process <pid>"
         return 1
       fi
-      kill "$pid"
+      _u7_exec kill "$pid"
       ;;
 
     user)
@@ -503,7 +556,7 @@ _u7_drop() {
         echo "Usage: u7 dr user <username>"
         return 1
       fi
-      sudo deluser "$1"
+      _u7_exec sudo deluser "$1"
       ;;
 
     --help|-h)
@@ -578,30 +631,45 @@ _u7_convert() {
 
       case "$lowercase" in
         *.tar.xz|*.tar.gz|*.tar.bz2|*.tar|*.tgz|*.tbz|*.tbz2|*.txz|*.tb2)
-          tar -xvf "$archive" -C "$dest" ;;
+          _u7_exec tar -xvf "$archive" -C "$dest" ;;
         *.bz|*.bz2)
-          bzip2 -d -k "$archive" ;;
+          _u7_exec bzip2 -d -k "$archive" ;;
         *.gz)
           local outfile=$(_get_output_file "$archive" "$dest")
-          gunzip -c "$archive" > "$outfile" ;;
+          if [[ "$_U7_DRY_RUN" == "1" ]]; then
+            echo "[dry-run] gunzip -c $archive > $outfile"
+          else
+            gunzip -c "$archive" > "$outfile"
+          fi
+          ;;
         *.zip|*.jar)
-          unzip "$archive" -d "$dest" ;;
+          _u7_exec unzip "$archive" -d "$dest" ;;
         *.rar)
-          unrar x "$archive" "$dest" ;;
+          _u7_exec unrar x "$archive" "$dest" ;;
         *.7z)
-          7z x "$archive" "-o$dest" ;;
+          _u7_exec 7z x "$archive" "-o$dest" ;;
         *.tar.lzma)
-          tar -xf "$archive" -C "$dest" --lzma ;;
+          _u7_exec tar -xf "$archive" -C "$dest" --lzma ;;
         *.xz)
           local outfile=$(_get_output_file "$archive" "$dest")
-          unxz -c "$archive" > "$outfile" ;;
+          if [[ "$_U7_DRY_RUN" == "1" ]]; then
+            echo "[dry-run] unxz -c $archive > $outfile"
+          else
+            unxz -c "$archive" > "$outfile"
+          fi
+          ;;
         *.lzma)
           local outfile=$(_get_output_file "$archive" "$dest")
-          unlzma -c "$archive" > "$outfile" ;;
+          if [[ "$_U7_DRY_RUN" == "1" ]]; then
+            echo "[dry-run] unlzma -c $archive > $outfile"
+          else
+            unlzma -c "$archive" > "$outfile"
+          fi
+          ;;
         *.iso)
-          sudo mount -o loop "$archive" "$dest" ;;
+          _u7_exec sudo mount -o loop "$archive" "$dest" ;;
         *.img|*.dmg)
-          hdiutil mount "$archive" -mountpoint "$dest" ;;
+          _u7_exec hdiutil mount "$archive" -mountpoint "$dest" ;;
         *)
           echo "Unknown archive format: $archive"
           return 1
@@ -646,18 +714,18 @@ _u7_convert() {
 
       case "$to_fmt" in
         pdf)
-          convert "$input" "$output"
+          _u7_exec convert "$input" "$output"
           ;;
         webp)
           if ! _u7_require cwebp; then
             echo "Falling back to ImageMagick for WebP conversion"
-            convert "$input" "$output"
+            _u7_exec convert "$input" "$output"
           else
-            cwebp -q 80 "$input" -o "$output"
+            _u7_exec cwebp -q 80 "$input" -o "$output"
           fi
           ;;
         *)
-          convert "$input" "$output"
+          _u7_exec convert "$input" "$output"
           ;;
       esac
       ;;
@@ -682,13 +750,17 @@ _u7_convert() {
         gif)
           if ! _u7_require gifsicle; then
             echo "Falling back to ffmpeg-only conversion"
-            ffmpeg -i "$input" "$output"
+            _u7_exec ffmpeg -i "$input" "$output"
           else
-            ffmpeg -i "$input" -pix_fmt rgb24 -r 10 -f gif - | gifsicle --optimize=3 --delay=5 > "$output"
+            if [[ "$_U7_DRY_RUN" == "1" ]]; then
+              echo "[dry-run] ffmpeg -i $input -pix_fmt rgb24 -r 10 -f gif - | gifsicle --optimize=3 --delay=5 > $output"
+            else
+              ffmpeg -i "$input" -pix_fmt rgb24 -r 10 -f gif - | gifsicle --optimize=3 --delay=5 > "$output"
+            fi
           fi
           ;;
         *)
-          ffmpeg -i "$input" "$output"
+          _u7_exec ffmpeg -i "$input" "$output"
           ;;
       esac
       ;;
@@ -710,7 +782,13 @@ _u7_convert() {
       fi
 
       case "$to_fmt" in
-        yaml|yml) yq -P < "$input" > "$output" ;;
+        yaml|yml)
+          if [[ "$_U7_DRY_RUN" == "1" ]]; then
+            echo "[dry-run] yq -P < $input > $output"
+          else
+            yq -P < "$input" > "$output"
+          fi
+          ;;
         *) echo "Unsupported conversion: json to $to_fmt" ; return 1 ;;
       esac
       ;;
@@ -726,14 +804,14 @@ _u7_convert() {
            return 1
         fi
         # Convert only basename to lowercase, preserve extension case
-        rename 's/^(.*)(\.\w+)$/lc($1) . $2/e' "${@:5}"
+        _u7_exec rename 's/^(.*)(\.\w+)$/lc($1) . $2/e' "${@:5}"
       elif [[ "$1" == "lower" && "$2" == "to" && "$3" == "upper" ]]; then
         if [[ "$4" != "on" ]]; then
            echo "Usage: u7 cv case lower to upper on <files...>"
            return 1
         fi
         # Convert only basename to uppercase, preserve extension case
-        rename 's/^(.*)(\.\w+)$/uc($1) . $2/e' "${@:5}"
+        _u7_exec rename 's/^(.*)(\.\w+)$/uc($1) . $2/e' "${@:5}"
       else
         echo "Usage: u7 cv case <upper|lower> to <lower|upper> on <files...>"
       fi
@@ -750,9 +828,9 @@ _u7_convert() {
            return 1
         fi
         if [[ -n "$4" ]]; then
-          rename 'y/ /_/' "$4"
+          _u7_exec rename 'y/ /_/' "$4"
         else
-          rename 'y/ /_/' -- *
+          _u7_exec rename 'y/ /_/' -- *
         fi
       else
         echo "Usage: u7 cv spaces to underscores on <file>"
@@ -792,12 +870,12 @@ _u7_move() {
 
   if [[ "$2" == "to" ]]; then
     local dst="$3"
-    mv "$src" "$dst"
+    _u7_exec mv "$src" "$dst"
   elif [[ "$1" == "sync" ]]; then
     local src_dir="$2"
     if [[ "$3" == "to" ]]; then
       local dst_dir="$4"
-      rsync -avz "$src_dir" "$dst_dir"
+      _u7_exec rsync -avz "$src_dir" "$dst_dir"
     else
       echo "Usage: u7 mv sync <source> to <destination>"
       return 1
@@ -842,13 +920,21 @@ _u7_set() {
       local old_escaped=$(_u7_escape_sed "$old")
       local new_escaped=$(_u7_escape_sed "$new")
 
-      if [[ -d "$target" ]]; then
-        # Use grep with -F for literal string matching, then sed for replacement
-        grep -rlF "$old" "$target" 2>/dev/null | while IFS= read -r file; do
-          sed -i'' "s/$old_escaped/$new_escaped/g" "$file"
-        done
+      if [[ "$_U7_DRY_RUN" == "1" ]]; then
+        if [[ -d "$target" ]]; then
+          echo "[dry-run] grep -rlF '$old' $target | xargs sed -i'' 's/$old_escaped/$new_escaped/g'"
+        else
+          echo "[dry-run] sed -i'' 's/$old_escaped/$new_escaped/g' $target"
+        fi
       else
-        sed -i'' "s/$old_escaped/$new_escaped/g" "$target"
+        if [[ -d "$target" ]]; then
+          # Use grep with -F for literal string matching, then sed for replacement
+          grep -rlF "$old" "$target" 2>/dev/null | while IFS= read -r file; do
+            sed -i'' "s/$old_escaped/$new_escaped/g" "$file"
+          done
+        else
+          sed -i'' "s/$old_escaped/$new_escaped/g" "$target"
+        fi
       fi
       ;;
 
@@ -864,9 +950,17 @@ _u7_set() {
       fi
       local file="$4"
       if [[ "$direction" == "back" ]]; then
-        sed -i'' 's|/|\\|g' "$file"
+        if [[ "$_U7_DRY_RUN" == "1" ]]; then
+          echo "[dry-run] sed -i'' 's|/|\\\\|g' $file"
+        else
+          sed -i'' 's|/|\\|g' "$file"
+        fi
       elif [[ "$direction" == "forward" ]]; then
-        sed -i'' 's|\\\\|/|g' "$file"
+        if [[ "$_U7_DRY_RUN" == "1" ]]; then
+          echo "[dry-run] sed -i'' 's|\\\\\\\\|/|g' $file"
+        else
+          sed -i'' 's|\\\\|/|g' "$file"
+        fi
       else
         echo "Usage: u7 st slashes to <back|forward> in <file>"
         return 1
@@ -879,7 +973,11 @@ _u7_set() {
             echo "Usage: u7 st tabs to spaces in <directory>"
             return 1
         fi
-        find "${4:-.}" -type f -exec sed -i'' 's/\t/  /g' {} \;
+        if [[ "$_U7_DRY_RUN" == "1" ]]; then
+          echo "[dry-run] find ${4:-.} -type f -exec sed -i'' 's/\\t/  /g' {} \\;"
+        else
+          find "${4:-.}" -type f -exec sed -i'' 's/\t/  /g' {} \;
+        fi
       else
         echo "Usage: u7 st tabs to spaces in <directory>"
       fi
@@ -896,7 +994,7 @@ _u7_set() {
         return 1
       fi
       local target="$4"
-      chmod "$mode" "$target"
+      _u7_exec chmod "$mode" "$target"
       ;;
 
     owner)
@@ -910,7 +1008,7 @@ _u7_set() {
         return 1
       fi
       local target="$4"
-      chown "$user" "$target"
+      _u7_exec chown "$user" "$target"
       ;;
 
     --help|-h)
@@ -957,13 +1055,22 @@ _u7_run() {
       local unit="${time//[0-9]/}"
       local value="${time//[^0-9]/}"
 
-      case "$unit" in
-        s) sleep "$value" && eval "$cmd" & ;;
-        m) sleep "$((value * 60))" && eval "$cmd" & ;;
-        h) sleep "$((value * 3600))" && eval "$cmd" & ;;
-        *) echo "Use: Ns, Nm, or Nh (e.g., 5s, 10m, 1h)" ; return 1 ;;
-      esac
-      echo "Scheduled: '$cmd' in $time"
+      if [[ "$_U7_DRY_RUN" == "1" ]]; then
+        case "$unit" in
+          s) echo "[dry-run] sleep $value && eval '$cmd' &" ;;
+          m) echo "[dry-run] sleep $((value * 60)) && eval '$cmd' &" ;;
+          h) echo "[dry-run] sleep $((value * 3600)) && eval '$cmd' &" ;;
+          *) echo "Use: Ns, Nm, or Nh (e.g., 5s, 10m, 1h)" ; return 1 ;;
+        esac
+      else
+        case "$unit" in
+          s) sleep "$value" && eval "$cmd" & ;;
+          m) sleep "$((value * 60))" && eval "$cmd" & ;;
+          h) sleep "$((value * 3600))" && eval "$cmd" & ;;
+          *) echo "Use: Ns, Nm, or Nh (e.g., 5s, 10m, 1h)" ; return 1 ;;
+        esac
+        echo "Scheduled: '$cmd' in $time"
+      fi
       ;;
 
     script)
@@ -972,12 +1079,16 @@ _u7_run() {
         echo "Script not found: $script"
         return 1
       fi
-      bash "$script"
+      _u7_exec bash "$script"
       ;;
 
     background)
-      "$@" &
-      echo "PID: $!"
+      if [[ "$_U7_DRY_RUN" == "1" ]]; then
+        echo "[dry-run] $* &"
+      else
+        "$@" &
+        echo "PID: $!"
+      fi
       ;;
 
     check)
@@ -996,15 +1107,19 @@ _u7_run() {
       local count="${1:-1}"
       local term_cmd
       term_cmd=$(ps -o comm= -p "$(($(ps -o ppid= -p "$(($(ps -o sid= -p "$$")))")))")
-      for _ in $(seq 1 "$count"); do
-        $term_cmd &
-      done
+      if [[ "$_U7_DRY_RUN" == "1" ]]; then
+        echo "[dry-run] $term_cmd & (x$count)"
+      else
+        for _ in $(seq 1 "$count"); do
+          $term_cmd &
+        done
+      fi
       ;;
 
     priority)
       local niceness="$1"
       shift
-      nice -n "$niceness" "$@"
+      _u7_exec nice -n "$niceness" "$@"
       ;;
 
     --help|-h)
@@ -1042,41 +1157,130 @@ _u7_completions() {
   }
 
   local verbs="show sh make mk drop dr convert cv move mv set st run rn --help"
+  local opts="-n --dry-run"
+
+  # Adjust for dry-run flag
+  local verb_idx=1
+  if [[ "${words[1]}" == "-n" || "${words[1]}" == "--dry-run" ]]; then
+    verb_idx=2
+  fi
 
   case "$cword" in
     1)
-      COMPREPLY=($(compgen -W "$verbs" -- "$cur"))
+      COMPREPLY=($(compgen -W "$verbs $opts" -- "$cur"))
       ;;
     2)
-      case "$prev" in
-        show|sh)
-          COMPREPLY=($(compgen -W "ip csv json line ssl files diff cpu memory disk processes port usage network git definition functions --help" -- "$cur"))
-          ;;
-        make|mk)
-          COMPREPLY=($(compgen -W "dir file password user copy link archive sequence --help" -- "$cur"))
-          ;;
-        drop|dr)
-          COMPREPLY=($(compgen -W "file dir dirs files line lines column duplicates process user --help" -- "$cur"))
-          ;;
-        convert|cv)
-          COMPREPLY=($(compgen -W "archive files png jpg jpeg gif video json case spaces --help" -- "$cur"))
-          ;;
-        move|mv)
-          COMPREPLY=($(compgen -W "sync --help" -- "$cur"))
-          _filedir
-          ;;
-        set|st)
-          COMPREPLY=($(compgen -W "text slashes tabs perms owner --help" -- "$cur"))
-          ;;
-        run|rn)
-          COMPREPLY=($(compgen -W "job script background priority check terminal --help" -- "$cur"))
-          ;;
-      esac
+      if [[ "${words[1]}" == "-n" || "${words[1]}" == "--dry-run" ]]; then
+        COMPREPLY=($(compgen -W "$verbs" -- "$cur"))
+      else
+        case "$prev" in
+          show|sh)
+            COMPREPLY=($(compgen -W "ip csv json line ssl files diff cpu memory disk processes port usage network git definition functions --help" -- "$cur"))
+            ;;
+          make|mk)
+            COMPREPLY=($(compgen -W "dir file password user copy link archive sequence --help" -- "$cur"))
+            ;;
+          drop|dr)
+            COMPREPLY=($(compgen -W "file dir dirs files line lines column duplicates process user --help" -- "$cur"))
+            ;;
+          convert|cv)
+            COMPREPLY=($(compgen -W "archive files png jpg jpeg gif video json case spaces --help" -- "$cur"))
+            ;;
+          move|mv)
+            COMPREPLY=($(compgen -W "sync --help" -- "$cur"))
+            _filedir
+            ;;
+          set|st)
+            COMPREPLY=($(compgen -W "text slashes tabs perms owner --help" -- "$cur"))
+            ;;
+          run|rn)
+            COMPREPLY=($(compgen -W "job script background priority check terminal --help" -- "$cur"))
+            ;;
+        esac
+      fi
+      ;;
+    3)
+      if [[ "${words[1]}" == "-n" || "${words[1]}" == "--dry-run" ]]; then
+        case "$prev" in
+          show|sh)
+            COMPREPLY=($(compgen -W "ip csv json line ssl files diff cpu memory disk processes port usage network git definition functions --help" -- "$cur"))
+            ;;
+          make|mk)
+            COMPREPLY=($(compgen -W "dir file password user copy link archive sequence --help" -- "$cur"))
+            ;;
+          drop|dr)
+            COMPREPLY=($(compgen -W "file dir dirs files line lines column duplicates process user --help" -- "$cur"))
+            ;;
+          convert|cv)
+            COMPREPLY=($(compgen -W "archive files png jpg jpeg gif video json case spaces --help" -- "$cur"))
+            ;;
+          move|mv)
+            COMPREPLY=($(compgen -W "sync --help" -- "$cur"))
+            _filedir
+            ;;
+          set|st)
+            COMPREPLY=($(compgen -W "text slashes tabs perms owner --help" -- "$cur"))
+            ;;
+          run|rn)
+            COMPREPLY=($(compgen -W "job script background priority check terminal --help" -- "$cur"))
+            ;;
+        esac
+      else
+        case "${words[1]}" in
+          show|sh)
+            case "${words[2]}" in
+              ip) COMPREPLY=($(compgen -W "external internal connected" -- "$cur")) ;;
+              processes) COMPREPLY=($(compgen -W "running by" -- "$cur")) ;;
+              files) COMPREPLY=($(compgen -W "match by" -- "$cur")) ;;
+              usage) COMPREPLY=($(compgen -W "disk directories" -- "$cur")) ;;
+              git) COMPREPLY=($(compgen -W "authors branches" -- "$cur")) ;;
+              *) _filedir ;;
+            esac
+            ;;
+          make|mk)
+            case "${words[2]}" in
+              copy|link) _filedir ;;
+            esac
+            ;;
+          drop|dr)
+            case "${words[2]}" in
+              dirs) COMPREPLY=($(compgen -W "empty" -- "$cur")) ;;
+              files) COMPREPLY=($(compgen -W "except" -- "$cur")) ;;
+              lines) COMPREPLY=($(compgen -W "blank" -- "$cur")) ;;
+              *) _filedir ;;
+            esac
+            ;;
+          convert|cv)
+            case "${words[2]}" in
+              archive|files) COMPREPLY=($(compgen -W "to" -- "$cur")) ;;
+              png|jpg|jpeg|gif) COMPREPLY=($(compgen -W "to" -- "$cur")) ;;
+              case) COMPREPLY=($(compgen -W "upper lower" -- "$cur")) ;;
+              spaces) COMPREPLY=($(compgen -W "to" -- "$cur")) ;;
+              *) _filedir ;;
+            esac
+            ;;
+          set|st)
+            case "${words[2]}" in
+              slashes) COMPREPLY=($(compgen -W "back forward" -- "$cur")) ;;
+              tabs) COMPREPLY=($(compgen -W "to" -- "$cur")) ;;
+              perms|owner) COMPREPLY=($(compgen -W "to" -- "$cur")) ;;
+              *) _filedir ;;
+            esac
+            ;;
+          run|rn)
+            case "${words[2]}" in
+              check) COMPREPLY=($(compgen -W "syntax" -- "$cur")) ; _filedir ;;
+              script) _filedir ;;
+            esac
+            ;;
+        esac
+      fi
       ;;
     *)
-      case "${words[1]}" in
+      local entity_idx=$((verb_idx + 1))
+      case "${words[$verb_idx]}" in
         show|sh)
-          case "${words[2]}" in
+          case "${words[$entity_idx]}" in
             ip) COMPREPLY=($(compgen -W "external internal connected" -- "$cur")) ;;
             processes) COMPREPLY=($(compgen -W "running by" -- "$cur")) ;;
             files) COMPREPLY=($(compgen -W "match by" -- "$cur")) ;;
@@ -1086,12 +1290,12 @@ _u7_completions() {
           esac
           ;;
         make|mk)
-          case "${words[2]}" in
+          case "${words[$entity_idx]}" in
             copy|link) _filedir ;;
           esac
           ;;
         drop|dr)
-          case "${words[2]}" in
+          case "${words[$entity_idx]}" in
             dirs) COMPREPLY=($(compgen -W "empty" -- "$cur")) ;;
             files) COMPREPLY=($(compgen -W "except" -- "$cur")) ;;
             lines) COMPREPLY=($(compgen -W "blank" -- "$cur")) ;;
@@ -1099,7 +1303,7 @@ _u7_completions() {
           esac
           ;;
         convert|cv)
-          case "${words[2]}" in
+          case "${words[$entity_idx]}" in
             archive|files) COMPREPLY=($(compgen -W "to" -- "$cur")) ;;
             png|jpg|jpeg|gif) COMPREPLY=($(compgen -W "to" -- "$cur")) ;;
             case) COMPREPLY=($(compgen -W "upper lower" -- "$cur")) ;;
@@ -1108,7 +1312,7 @@ _u7_completions() {
           esac
           ;;
         set|st)
-          case "${words[2]}" in
+          case "${words[$entity_idx]}" in
             slashes) COMPREPLY=($(compgen -W "back forward" -- "$cur")) ;;
             tabs) COMPREPLY=($(compgen -W "to" -- "$cur")) ;;
             perms|owner) COMPREPLY=($(compgen -W "to" -- "$cur")) ;;
@@ -1116,7 +1320,7 @@ _u7_completions() {
           esac
           ;;
         run|rn)
-          case "${words[2]}" in
+          case "${words[$entity_idx]}" in
             check) COMPREPLY=($(compgen -W "syntax" -- "$cur")) ; _filedir ;;
             script) _filedir ;;
           esac

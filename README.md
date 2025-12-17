@@ -45,7 +45,7 @@ u7 sh ssl google.com
 # Files
 u7 sh files match "TODO" in ./src
 u7 sh files by modified
-u7 sh csv data.csv limit 10
+u7 sh csv first 10 from data.csv
 
 # System
 u7 sh cpu
@@ -71,12 +71,59 @@ u7 rn job "echo done" in 10s
 u7 rn background ./long-task.sh
 ```
 
+## The Grammar
+
+Every command follows a strict formula:
+
+```
+u7 <VERB> <ENTITY> [MODIFIER] [OPERATOR ARG]...
+```
+
+| Component | Role | Question to Ask |
+|-----------|------|-----------------|
+| **Verb** | The action (1 of 7) | What am I doing? |
+| **Entity** | The noun being acted on | What thing am I manipulating? |
+| **Modifier** | Variant or filter | Which subset or type? |
+| **Operator Arg** | Relationship + value | From where? To what? How? |
+
+### Operators
+
+| Operator | Relationship | Example |
+|----------|--------------|---------|
+| `from` | Source | `cv png ... from image.png` |
+| `to` | Target state | `st owner to root`, `cv png to jpg` |
+| `yield` | File output | `cv ... yield output.jpg` |
+| `in` | Container/delay | `st text ... in file`, `rn job ... in 5s` |
+| `on` | Target | `st perms to 755 on script.sh` |
+| `by` | Criteria | `sh files by size` |
+| `for` | Duration | `rn job ... for 30s` |
+| `with` | Options | `rn job ... with retry 3` |
+| `match` | Filter | `sh files match "TODO"` |
+
+**Modifiers** (not operators — they filter the entity):
+
+| Modifier | Type | Example |
+|----------|------|---------|
+| `first N` | Position | `sh lines first 10 from file` |
+| `last N` | Position | `sh lines last 5 from file` |
+| `empty` | State | `dr dirs empty` |
+| `blank` | State | `dr lines blank from file` |
+| `external/internal` | Property | `sh ip external` |
+
+### The English Litmus Test
+
+Read the command aloud. It must sound like (slightly robotic) English:
+
+- `u7 sh lines first 10 from file` → "Show lines, first 10, from file" ✓
+- `u7 st perms to 755 on script.sh` → "Set perms to 755 on script" ✓
+- `u7 cv png to jpg from a.png yield b.jpg` → "Convert png to jpg from a.png, yield b.jpg" ✓
+
 ## Why u7?
 
 - **Minimal vocabulary**: 7 verbs cover all Unix operations
-- **Consistent grammar**: `u7 <verb> <entity> [operator] [args]`
-- **Aliases**: Full verbs (`show`, `make`, `drop`, `convert`, `move`, `set`, `run`) are also supported.
-- **AI-friendly**: Designed for both humans and AI agents
+- **Strict grammar**: `u7 <VERB> <ENTITY> [MODIFIER] [OPERATOR ARG]`
+- **Aliases**: Full verbs (`show`, `make`, `drop`, `convert`, `move`, `set`, `run`) also supported
+- **AI-friendly**: Predictable structure for humans and AI agents
 - **Reproducible**: Nix ensures identical environments everywhere
 - **Cross-platform**: Works on Linux and macOS
 
