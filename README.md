@@ -1,5 +1,5 @@
 <p align="center">
-    <img src="u7.png" alt="u7 logo" width="300">
+    <img src="u7.png" alt="u7 logo" width="600">
 </p>
 
 # u7 - Universal 7 CLI
