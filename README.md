@@ -2,6 +2,12 @@
     <img src="u7.png" alt="u7 logo" width="600">
 </p>
 
+<p align="center">
+    <a href="https://github.com/vitali87/utility/stargazers"><img src="https://img.shields.io/github/stars/vitali87/utility" alt="Stars"></a>
+    <a href="https://github.com/vitali87/utility/network/members"><img src="https://img.shields.io/github/forks/vitali87/utility" alt="Forks"></a>
+    <a href="https://github.com/vitali87/utility/blob/main/LICENSE"><img src="https://img.shields.io/github/license/vitali87/utility" alt="License"></a>
+</p>
+
 # u7 - Universal 7 CLI
 
 A unified command-line interface with 7 intuitive verbs for humans and AI agents.
