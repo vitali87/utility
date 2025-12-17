@@ -1,12 +1,15 @@
-<p align="center">
-    <img src="u7.png" alt="u7 logo" width="600">
-</p>
-
-<p align="center">
-    <a href="https://github.com/vitali87/utility/stargazers"><img src="https://img.shields.io/github/stars/vitali87/utility" alt="Stars"></a>
-    <a href="https://github.com/vitali87/utility/network/members"><img src="https://img.shields.io/github/forks/vitali87/utility" alt="Forks"></a>
-    <a href="https://github.com/vitali87/utility/blob/main/LICENSE"><img src="https://img.shields.io/github/license/vitali87/utility" alt="License"></a>
-</p>
+<div align="center">
+  <img src="u7.png" alt="u7 logo" width="480"><br>
+  <a href="https://github.com/vitali87/u7/stargazers">
+    <img src="https://img.shields.io/github/stars/vitali87/u7?style=social" alt="GitHub stars" />
+  </a>
+  <a href="https://github.com/vitali87/u7/network/members">
+    <img src="https://img.shields.io/github/forks/vitali87/u7?style=social" alt="GitHub forks" />
+  </a>
+  <a href="https://github.com/vitali87/u7/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/vitali87/u7" alt="License" />
+  </a>
+</div>
 
 # u7 - Universal 7 CLI
 
