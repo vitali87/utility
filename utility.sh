@@ -404,11 +404,18 @@ _u7_make() {
       ;;
 
     sequence)
-      local prefix="$1"
-      local count="$2"
-      local delim="${3:-_}"
+      if [[ "$1" != "with" || "$2" != "prefix" ]]; then
+        echo "Usage: u7 mk sequence with prefix <prefix> limit <N>"
+        return 1
+      fi
+      local prefix="$3"
+      if [[ "$4" != "limit" ]]; then
+        echo "Usage: u7 mk sequence with prefix <prefix> limit <N>"
+        return 1
+      fi
+      local count="$5"
       for i in $(seq 1 "$count"); do
-        echo "${prefix}${delim}${i}"
+        echo "${prefix}_${i}"
       done
       ;;
 
@@ -419,14 +426,14 @@ u7 mk (make) - Create/Clone
 Usage: u7 mk <entity> [arguments]
 
 Entities:
-  dir <path>                    Create directory
-  file <path>                   Create empty file
-  password length <N>           Generate random password
-  user <username>               Create system user
-  copy <src> to <dst>           Copy file/directory
-  link <src> to <dst>           Create symbolic link
-  archive <output> from <files...>  Create archive
-  sequence <prefix> <count>     Generate numbered sequence
+  dir <path>                               Create directory at <path>
+  file <path>                              Create empty file
+  password length <N>                      Generate random password of length <N>
+  user <username>                          Create system user
+  copy <source> to <destination>           Copy file/directory
+  link <source> to <destination>           Create symbolic link
+  archive <output> from <files...>         Create archive from <files...> to <output>
+  sequence with prefix <prefix> limit <N>  Generate numbered sequence with prefix <prefix> and limit <N>
 EOF
       ;;
 
@@ -460,11 +467,11 @@ _u7_drop() {
       ;;
 
     dirs)
-      if [[ "$1" == "empty" ]]; then
+      if [[ "$1" == "if" && "$2" == "empty" ]]; then
         _u7_exec find . -type d -empty -delete
         [[ "$_U7_DRY_RUN" != "1" ]] && echo "Deleted empty directories"
       else
-        echo "Usage: u7 dr dirs empty"
+        echo "Usage: u7 dr dirs if empty"
       fi
       ;;
 
@@ -506,16 +513,16 @@ _u7_drop() {
       ;;
 
     lines)
-      if [[ "$1" == "blank" && "$2" == "from" && "$4" == "yield" ]]; then
-        local src="$3"
-        local dst="$5"
+      if [[ "$1" == "if" && "$2" == "blank" && "$3" == "from" && "$5" == "yield" ]]; then
+        local src="$4"
+        local dst="$6"
         if [[ "$_U7_DRY_RUN" == "1" ]]; then
           echo "[dry-run] grep . $src > $dst"
         else
           grep . "$src" > "$dst"
         fi
       else
-        echo "Usage: u7 dr lines blank from <input> yield <output>"
+        echo "Usage: u7 dr lines if blank from <input> yield <output>"
       fi
       ;;
 
@@ -580,10 +587,10 @@ Usage: u7 dr <entity> [arguments]
 Entities:
   file <path>                   Delete file (with confirmation)
   dir <path>                    Delete directory (with confirmation)
-  dirs empty                    Delete all empty directories
+  dirs if empty                 Delete all empty directories
   files but <pattern>           Delete all files but <pattern>
   line <number> from <file>     Delete line from file
-  lines blank from <in> yield <out>  Remove blank lines
+  lines if blank from <in> yield <out>  Remove blank lines
   column <number> from <file>  Delete column from CSV
   duplicates in|from <file>     Remove duplicate lines
   process <pid>                 Kill process
@@ -733,19 +740,15 @@ _u7_convert() {
       ;;
 
     video)
-      if [[ "$1" != "to" ]]; then
-        echo "Usage: u7 cv video to <format> from <input> [yield <output>]"
+      local input="$1"
+      if [[ "$2" != "to" ]]; then
+        echo "Usage: u7 cv video <input> to <format> [yield <output>]"
         return 1
       fi
-      local to_fmt="$2"
-      if [[ "$3" != "from" ]]; then
-        echo "Usage: u7 convert video to <format> from <input> [yield <output>]"
-        return 1
-      fi
-      local input="$4"
+      local to_fmt="$3"
       local output="${input%.*}.$to_fmt"
-      if [[ "$5" == "yield" ]]; then
-          output="$6"
+      if [[ "$4" == "yield" ]]; then
+          output="$5"
       fi
 
       case "$to_fmt" in
@@ -1109,7 +1112,10 @@ _u7_run() {
       ;;
 
     terminal)
-      local count="${1:-1}"
+      local count=1
+      if [[ "$1" == "limit" ]]; then
+        count="$2"
+      fi
       local term_cmd
       term_cmd=$(ps -o comm= -p "$(($(ps -o ppid= -p "$(($(ps -o sid= -p "$$")))")))")
       if [[ "$_U7_DRY_RUN" == "1" ]]; then
@@ -1134,7 +1140,7 @@ Entities:
   <command> with priority <nice>         Run with CPU priority
   check syntax in file <path>            Check single file syntax
   check syntax in files <pattern>        Check files matching pattern
-  terminal [count]                       Open new terminal(s)
+  terminal [limit <N>]                   Open new terminal(s)
 EOF
       ;;
 
@@ -1260,9 +1266,9 @@ _u7_completions() {
             ;;
           drop|dr)
             case "${words[2]}" in
-              dirs) COMPREPLY=($(compgen -W "empty" -- "$cur")) ;;
+              dirs) COMPREPLY=($(compgen -W "if" -- "$cur")) ;;
               files) COMPREPLY=($(compgen -W "but" -- "$cur")) ;;
-              lines) COMPREPLY=($(compgen -W "blank" -- "$cur")) ;;
+              lines) COMPREPLY=($(compgen -W "if" -- "$cur")) ;;
               *) _filedir ;;
             esac
             ;;
@@ -1312,9 +1318,9 @@ _u7_completions() {
           ;;
         drop|dr)
           case "${words[$entity_idx]}" in
-            dirs) COMPREPLY=($(compgen -W "empty" -- "$cur")) ;;
+            dirs) COMPREPLY=($(compgen -W "if" -- "$cur")) ;;
             files) COMPREPLY=($(compgen -W "but" -- "$cur")) ;;
-            lines) COMPREPLY=($(compgen -W "blank" -- "$cur")) ;;
+            lines) COMPREPLY=($(compgen -W "if" -- "$cur")) ;;
             *) _filedir ;;
           esac
           ;;

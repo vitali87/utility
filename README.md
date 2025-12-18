@@ -111,7 +111,9 @@ u7 <VERB> <ENTITY> [MODIFIER] [OPERATOR ARG]...
 | `match` | Filter | `sh files match "TODO"` |
 | `but` | Exclusion | `dr files but "*.txt"` |
 | `limit` | Count | `sh csv data.csv limit 10` |
+| `length` | Size | `mk password length 16` |
 | `of` | Possession | `sh ssl of google.com` |
+| `if` | Condition | `dr dirs if empty` |
 
 **Modifiers** (not operators — they filter the entity):
 
@@ -119,9 +121,9 @@ u7 <VERB> <ENTITY> [MODIFIER] [OPERATOR ARG]...
 |----------|------|---------|
 | `first N` | Position | `sh lines first 10 from file` |
 | `last N` | Position | `sh lines last 5 from file` |
-| `empty` | State | `dr dirs empty` |
-| `blank` | State | `dr lines blank from file` |
 | `external/internal` | Property | `sh ip external` |
+| `empty` | Condition | `dr dirs if empty` |
+| `blank` | Condition | `dr lines if blank from file` |
 
 ### The English Litmus Test
 
@@ -130,6 +132,92 @@ Read the command aloud. It must sound like (slightly robotic) English:
 - `u7 sh lines first 10 from file` → "Show lines, first 10, from file" ✓
 - `u7 st perms to 755 on script.sh` → "Set perms to 755 on script" ✓
 - `u7 cv image a.png to jpg yield b.jpg` → "Convert image a.png to jpg, yield b.jpg" ✓
+
+## Entity Reference
+
+### sh (show) - Observe/Search
+| Entity | Usage |
+|--------|-------|
+| `ip` | `sh ip <external\|internal\|connected>` |
+| `csv` | `sh csv <file> [limit N]` |
+| `json` | `sh json <file> [limit N]` |
+| `line` | `sh line <number> from <file>` |
+| `ssl` | `sh ssl of <domain>` |
+| `files` | `sh files <match\|by> [pattern\|sort_type] [in <path>]` |
+| `diff` | `sh diff <file1> to <file2>` |
+| `cpu` | `sh cpu` |
+| `memory` | `sh memory` |
+| `disk` | `sh disk` |
+| `processes` | `sh processes <running\|by> [cpu\|memory]` |
+| `port` | `sh port <number>` |
+| `usage` | `sh usage <disk\|directories> [path\|depth]` |
+| `network` | `sh network` |
+| `git` | `sh git <authors\|branches>` |
+| `definition` | `sh definition of <word>` |
+| `functions` | `sh functions` |
+
+### mk (make) - Create/Clone
+| Entity | Usage |
+|--------|-------|
+| `dir` | `mk dir <path>` |
+| `file` | `mk file <path>` |
+| `password` | `mk password length <N>` |
+| `user` | `mk user <username>` |
+| `copy` | `mk copy <src> to <dst>` |
+| `link` | `mk link <src> to <dst>` |
+| `archive` | `mk archive <output> from <files...>` |
+| `sequence` | `mk sequence with prefix <prefix> limit <N>` |
+
+### dr (drop) - Delete/Kill
+| Entity | Usage |
+|--------|-------|
+| `file` | `dr file <path>` |
+| `dir` | `dr dir <path>` |
+| `dirs` | `dr dirs if empty` |
+| `files` | `dr files but <pattern>` |
+| `line` | `dr line <number> from <file>` |
+| `lines` | `dr lines if blank from <in> yield <out>` |
+| `column` | `dr column <number> from <file.csv>` |
+| `duplicates` | `dr duplicates in\|from <file>` |
+| `process` | `dr process <pid>` |
+| `user` | `dr user <username>` |
+
+### cv (convert) - Transform/Extract
+| Entity | Usage |
+|--------|-------|
+| `archive` | `cv archive <archive> to files [yield <dest>]` |
+| `files` | `cv files <files...> to archive yield <output>` |
+| `image` | `cv image <input> to <format> [yield <output>]` |
+| `video` | `cv video <input> to <format> [yield <output>]` |
+| `json` | `cv json <input> to yaml [yield <output>]` |
+| `case` | `cv case <upper\|lower> to <lower\|upper> on <files...>` |
+| `spaces` | `cv spaces to underscores on <file>` |
+
+### mv (move) - Relocate/Rename
+| Entity | Usage |
+|--------|-------|
+| `file` | `mv file <source> to <destination>` |
+| `sync` | `mv sync <source> to <destination>` |
+
+### st (set) - Modify/Config
+| Entity | Usage |
+|--------|-------|
+| `text` | `st text <old> to <new> in <file>` |
+| `slashes` | `st slashes to <back\|forward> in <file>` |
+| `tabs` | `st tabs to spaces in <directory>` |
+| `perms` | `st perms to <mode> on <file>` |
+| `owner` | `st owner to <user> on <file>` |
+
+### rn (run) - Execute/Control
+| Entity | Usage |
+|--------|-------|
+| `job` | `rn job <cmd> in <time>` |
+| `script` | `rn script <path>` |
+| `<command>` | `rn <command> in background` |
+| `<command>` | `rn <command> with priority <nice>` |
+| `check` | `rn check syntax in file <path>` |
+| `check` | `rn check syntax in files <pattern>` |
+| `terminal` | `rn terminal [limit <N>]` |
 
 ## Why u7?
 

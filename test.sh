@@ -217,7 +217,7 @@ else
 fi
 
 # Test 18: Make sequence
-result=$(u7 mk sequence test 3 | wc -l | tr -d ' ')
+result=$(u7 mk sequence with prefix test limit 3 | wc -l | tr -d ' ')
 assert_equals "Sequence generation" "3" "$result"
 
 # Test 20: Show file diff
@@ -254,7 +254,7 @@ fi
 
 # Test 23: Drop blank lines
 echo -e "line1\n\nline2\n\nline3" > blank.txt
-u7 dr lines blank from blank.txt yield noblank.txt >/dev/null 2>&1
+u7 dr lines if blank from blank.txt yield noblank.txt >/dev/null 2>&1
 line_count=$(wc -l < noblank.txt | tr -d ' ')
 assert_equals "Drop blank lines" "3" "$line_count"
 
@@ -544,6 +544,60 @@ if [[ "$result" == *"Usage:"* ]]; then
     ((PASSED++))
 else
     echo -e "${RED}✗${NC} Definition requires 'of' operator"
+    ((FAILED++))
+fi
+
+# Test 56: Drop dirs if empty
+mkdir -p emptytest/empty1 emptytest/empty2 emptytest/notempty
+touch emptytest/notempty/file.txt
+cd emptytest
+u7 dr dirs if empty >/dev/null 2>&1
+if [[ ! -d "empty1" && ! -d "empty2" && -d "notempty" ]]; then
+    echo -e "${GREEN}✓${NC} Drop dirs if empty works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Drop dirs if empty works"
+    ((FAILED++))
+fi
+cd ..
+
+# Test 57: Video conversion pattern (dry-run)
+result=$(u7 --dry-run cv video input.avi to mp4 2>&1)
+if [[ "$result" == *"ffmpeg -i input.avi"*"mp4"* ]]; then
+    echo -e "${GREEN}✓${NC} Video conversion pattern works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Video conversion pattern works"
+    ((FAILED++))
+fi
+
+# Test 58: Video conversion with old pattern should fail
+result=$(u7 cv video to mp4 from input.avi 2>&1)
+if [[ "$result" == *"Usage:"* ]]; then
+    echo -e "${GREEN}✓${NC} Video requires new pattern"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Video requires new pattern"
+    ((FAILED++))
+fi
+
+# Test 59: Terminal without limit (dry-run)
+result=$(u7 --dry-run rn terminal 2>&1)
+if [[ "$result" == *"[dry-run]"* && "$result" == *"(x1)"* ]]; then
+    echo -e "${GREEN}✓${NC} Terminal without limit works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Terminal without limit works"
+    ((FAILED++))
+fi
+
+# Test 60: Terminal with limit (dry-run)
+result=$(u7 --dry-run rn terminal limit 3 2>&1)
+if [[ "$result" == *"[dry-run]"* && "$result" == *"(x3)"* ]]; then
+    echo -e "${GREEN}✓${NC} Terminal with limit works"
+    ((PASSED++))
+else
+    echo -e "${RED}✗${NC} Terminal with limit works"
     ((FAILED++))
 fi
 
