@@ -20,10 +20,10 @@ A unified command-line interface with 7 intuitive verbs for humans and AI agents
 | Verb | Purpose | Example |
 |------|---------|---------|
 | `sh` | Observe/Search | `u7 sh ip external` |
-| `mk` | Create/Clone | `u7 mk password 16` |
+| `mk` | Create/Clone | `u7 mk password length 16` |
 | `dr` | Delete/Kill | `u7 dr file temp.txt` |
-| `cv` | Transform/Extract | `u7 cv archive to files from backup.tar.gz` |
-| `mv` | Relocate/Rename | `u7 mv file.txt to newname.txt` |
+| `cv` | Transform/Extract | `u7 cv archive backup.tar.gz to files` |
+| `mv` | Relocate/Rename | `u7 mv file old.txt to new.txt` |
 | `st` | Modify/Config | `u7 st text "old" to "new" in file.txt` |
 | `rn` | Execute/Control | `u7 rn job "echo done" in 5s` |
 
@@ -49,7 +49,7 @@ u7 sh --help
 # Network
 u7 sh ip external
 u7 sh ip internal
-u7 sh ssl google.com
+u7 sh ssl of google.com
 
 # Files
 u7 sh files match "TODO" in ./src
@@ -63,13 +63,13 @@ u7 sh processes by cpu
 
 # Create
 u7 mk dir myproject
-u7 mk password 32
+u7 mk password length 32
 u7 mk archive backup.tar.gz from ./src
 
 # Transform
-u7 cv archive to files from backup.tar.gz
-u7 cv png to jpg from image.png yield image.jpg
-u7 cv json to yaml from config.json
+u7 cv archive backup.tar.gz to files
+u7 cv image photo.png to jpg yield photo.jpg
+u7 cv json config.json to yaml
 
 # Modify
 u7 st text "foo" to "bar" in file.txt
@@ -77,7 +77,9 @@ u7 st perms to 755 on script.sh
 
 # Execute
 u7 rn job "echo done" in 10s
-u7 rn background ./long-task.sh
+u7 rn ./long-task.sh in background
+u7 rn ./script.sh with priority 10
+u7 rn check syntax in files "*.sh"
 ```
 
 ## The Grammar
@@ -99,15 +101,17 @@ u7 <VERB> <ENTITY> [MODIFIER] [OPERATOR ARG]...
 
 | Operator | Relationship | Example |
 |----------|--------------|---------|
-| `from` | Source | `cv png ... from image.png` |
-| `to` | Target state | `st owner to root`, `cv png to jpg` |
-| `yield` | File output | `cv ... yield output.jpg` |
-| `in` | Container/delay | `st text ... in file`, `rn job ... in 5s` |
+| `from` | Source | `mk archive backup.tar.gz from files` |
+| `to` | Target state | `st owner to root`, `cv image x.png to jpg` |
+| `yield` | File output | `cv image x.png to jpg yield out.jpg` |
+| `in` | Container/location | `st text ... in file`, `rn job ... in 5s` |
 | `on` | Target | `st perms to 755 on script.sh` |
 | `by` | Criteria | `sh files by size` |
-| `for` | Duration | `rn job ... for 30s` |
-| `with` | Options | `rn job ... with retry 3` |
+| `with` | Options | `rn ./script.sh with priority 10` |
 | `match` | Filter | `sh files match "TODO"` |
+| `but` | Exclusion | `dr files but "*.txt"` |
+| `limit` | Count | `sh csv data.csv limit 10` |
+| `of` | Possession | `sh ssl of google.com` |
 
 **Modifiers** (not operators — they filter the entity):
 
@@ -125,7 +129,7 @@ Read the command aloud. It must sound like (slightly robotic) English:
 
 - `u7 sh lines first 10 from file` → "Show lines, first 10, from file" ✓
 - `u7 st perms to 755 on script.sh` → "Set perms to 755 on script" ✓
-- `u7 cv png to jpg from a.png yield b.jpg` → "Convert png to jpg from a.png, yield b.jpg" ✓
+- `u7 cv image a.png to jpg yield b.jpg` → "Convert image a.png to jpg, yield b.jpg" ✓
 
 ## Why u7?
 

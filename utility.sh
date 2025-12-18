@@ -88,11 +88,11 @@ Examples:
   u7 sh ip external
   u7 sh csv data.csv limit 10
   u7 mk dir myproject
-  u7 mk password 16
+  u7 mk password length 16
   u7 dr file temp.txt
-  u7 cv archive to files from backup.tar.gz yield ./
-  u7 cv png to jpg from image.png yield image.jpg
-  u7 mv file.txt to newname.txt
+  u7 cv archive backup.tar.gz to files yield ./
+  u7 cv image photo.png to jpg yield photo.jpg
+  u7 mv file old.txt to new.txt
   u7 st text "old" to "new" in file.txt
   u7 rn job "echo done" in 5s
 
@@ -158,9 +158,13 @@ _u7_show() {
       ;;
 
     ssl)
-      local domain="$1"
+      if [[ "$1" != "of" ]]; then
+        echo "Usage: u7 sh ssl of <domain>"
+        return 1
+      fi
+      local domain="$2"
       if [[ -z "$domain" ]]; then
-        echo "Usage: u7 sh ssl <domain>"
+        echo "Usage: u7 sh ssl of <domain>"
         return 1
       fi
       echo | openssl s_client -connect "$domain":443 2>/dev/null | openssl x509 -dates -noout
@@ -253,7 +257,11 @@ _u7_show() {
       ;;
 
     definition)
-      curl -s "dict://dict.org/d:$1"
+      if [[ "$1" != "of" ]]; then
+        echo "Usage: u7 sh definition of <word>"
+        return 1
+      fi
+      curl -s "dict://dict.org/d:$2"
       ;;
 
     functions)
@@ -271,7 +279,7 @@ Entities:
   csv <file> [limit N]
   json <file> [limit N]
   line <number> from <file>
-  ssl <domain>
+  ssl of <domain>
   files <match|by> [pattern|sort_type] [in <path>]
   diff <file1> to <file2>
   cpu
@@ -282,7 +290,7 @@ Entities:
   usage <disk|directories> [path|depth]
   network
   git <authors|branches>
-  definition <word>
+  definition of <word>
   functions
 EOF
       ;;
@@ -309,7 +317,11 @@ _u7_make() {
       ;;
 
     password)
-      local length="${1:-16}"
+      if [[ "$1" == "length" ]]; then
+        local length="${2:-16}"
+      else
+        local length="${1:-16}"
+      fi
       LC_ALL=C tr -dc 'A-Za-z0-9!@#$%^&*' < /dev/urandom | head -c "$length"
       echo
       ;;
@@ -409,7 +421,7 @@ Usage: u7 mk <entity> [arguments]
 Entities:
   dir <path>                    Create directory
   file <path>                   Create empty file
-  password [length]             Generate random password (default: 16)
+  password length <N>           Generate random password
   user <username>               Create system user
   copy <src> to <dst>           Copy file/directory
   link <src> to <dst>           Create symbolic link
@@ -457,12 +469,12 @@ _u7_drop() {
       ;;
 
     files)
-      if [[ "$1" == "except" ]]; then
+      if [[ "$1" == "but" ]]; then
         local pattern="$2"
         if [[ "$_U7_DRY_RUN" == "1" ]]; then
           echo "[dry-run] find . -type f ! -name $pattern -delete"
         else
-          echo "This will delete all files except '$pattern'. Continue? (y/n)"
+          echo "This will delete all files but '$pattern'. Continue? (y/n)"
           read -r confirm
           if [[ "$confirm" == "y" ]]; then
             find . -type f ! -name "$pattern" -delete
@@ -471,7 +483,7 @@ _u7_drop() {
           fi
         fi
       else
-        echo "Usage: u7 dr files except <pattern>"
+        echo "Usage: u7 dr files but <pattern>"
       fi
       ;;
 
@@ -569,7 +581,7 @@ Entities:
   file <path>                   Delete file (with confirmation)
   dir <path>                    Delete directory (with confirmation)
   dirs empty                    Delete all empty directories
-  files except <pattern>        Delete all files except pattern
+  files but <pattern>           Delete all files but <pattern>
   line <number> from <file>     Delete line from file
   lines blank from <in> yield <out>  Remove blank lines
   column <number> from <file>  Delete column from CSV
@@ -593,18 +605,14 @@ _u7_convert() {
 
   case "$entity" in
     archive)
-      if [[ "$1" != "to" || "$2" != "files" ]]; then
-        echo "Usage: u7 cv archive to files from <archive> [yield <destination>]"
+      local archive="$1"
+      if [[ "$2" != "to" || "$3" != "files" ]]; then
+        echo "Usage: u7 cv archive <archive> to files [yield <destination>]"
         return 1
       fi
-      if [[ "$3" != "from" ]]; then
-        echo "Usage: u7 cv archive to files from <archive> [yield <destination>]"
-        return 1
-      fi
-      local archive="$4"
       local dest="."
-      if [[ "$5" == "yield" ]]; then
-          dest="$6"
+      if [[ "$4" == "yield" ]]; then
+        dest="$5"
       fi
 
       if [[ ! -f "$archive" ]]; then
@@ -678,44 +686,38 @@ _u7_convert() {
       ;;
 
     files)
+      # Collect files until we hit "to archive"
+      local -a files=()
+      while [[ $# -gt 0 && "$1" != "to" ]]; do
+        files+=("$1")
+        shift
+      done
       if [[ "$1" != "to" || "$2" != "archive" ]]; then
-        echo "Usage: u7 cv files to archive yield <output> from <files...>"
+        echo "Usage: u7 cv files <files...> to archive yield <output>"
         return 1
       fi
-      if [[ "$3" != "yield" ]]; then
-        echo "Usage: u7 cv files to archive yield <output> from <files...>"
+      shift 2
+      if [[ "$1" != "yield" ]]; then
+        echo "Usage: u7 cv files <files...> to archive yield <output>"
         return 1
       fi
-      local output="$4"
-      if [[ "$5" != "from" ]]; then
-        echo "Usage: u7 cv files to archive yield <output> from <files...>"
-        return 1
-      fi
-      shift 5
-      _u7_make archive "$output" from "$@"
+      local output="$2"
+      _u7_make archive "$output" from "${files[@]}"
       ;;
 
-    png|jpg|jpeg|gif|bmp|tiff|webp)
-      local from_fmt="$entity"
-      if [[ "$1" != "to" ]]; then
-        echo "Usage: u7 cv $from_fmt to <format> from <input> [yield <output>]"
+    image)
+      local input="$1"
+      if [[ "$2" != "to" ]]; then
+        echo "Usage: u7 cv image <input> to <format> [yield <output>]"
         return 1
       fi
-      local to_fmt="$2"
-      if [[ "$3" != "from" ]]; then
-        echo "Usage: u7 convert $from_fmt to <format> from <input> [yield <output>]"
-        return 1
-      fi
-      local input="$4"
+      local to_fmt="$3"
       local output="${input%.*}.$to_fmt"
-      if [[ "$5" == "yield" ]]; then
-          output="$6"
+      if [[ "$4" == "yield" ]]; then
+        output="$5"
       fi
 
       case "$to_fmt" in
-        pdf)
-          _u7_exec convert "$input" "$output"
-          ;;
         webp)
           if ! _u7_require cwebp; then
             echo "Falling back to ImageMagick for WebP conversion"
@@ -766,19 +768,15 @@ _u7_convert() {
       ;;
 
     json)
-      if [[ "$1" != "to" ]]; then
-        echo "Usage: u7 cv json to yaml from <input> [yield <output>]"
+      local input="$1"
+      if [[ "$2" != "to" ]]; then
+        echo "Usage: u7 cv json <input> to yaml [yield <output>]"
         return 1
       fi
-      local to_fmt="$2"
-      if [[ "$3" != "from" ]]; then
-        echo "Usage: u7 convert json to yaml from <input> [yield <output>]"
-        return 1
-      fi
-      local input="$4"
+      local to_fmt="$3"
       local output="${input%.*}.$to_fmt"
-      if [[ "$5" == "yield" ]]; then
-          output="$6"
+      if [[ "$4" == "yield" ]]; then
+        output="$5"
       fi
 
       case "$to_fmt" in
@@ -841,16 +839,14 @@ _u7_convert() {
       cat << 'EOF'
 u7 cv (convert) - Transform/Extract
 
-Usage: u7 cv <entity> to <format> from <input> [yield <output>]
+Usage: u7 cv <entity> <input> to <format> [yield <output>]
 
 Entities:
-  archive to files from <archive> [yield <dest>]  Extract archive
-  files to archive yield <output> from <files...>   Create archive
-  png to <jpg|webp|pdf> from <input>     Convert image
-  jpg to <png|webp|pdf> from <input>     Convert image
-  gif to webp from <input>               Convert GIF to WebP
+  archive <archive> to files [yield <dest>]  Extract archive
+  files <files...> to archive yield <output>   Create archive
+  image <input> to <format> [yield <output>]   Convert image (png/jpg/webp/gif/etc)
   video to <format> from <input>         Convert video
-  json to yaml from <input>              Convert JSON to YAML
+  json <input> to yaml [yield <output>]  Convert JSON to YAML
   case upper to lower on <files...>      Rename to lowercase
   case lower to upper on <files...>      Rename to uppercase
   spaces to underscores on <file>        Replace spaces in filenames
@@ -866,36 +862,48 @@ EOF
 }
 
 _u7_move() {
-  local src="$1"
+  local entity="$1"
+  shift
 
-  if [[ "$2" == "to" ]]; then
-    local dst="$3"
-    _u7_exec mv "$src" "$dst"
-  elif [[ "$1" == "sync" ]]; then
-    local src_dir="$2"
-    if [[ "$3" == "to" ]]; then
-      local dst_dir="$4"
-      _u7_exec rsync -avz "$src_dir" "$dst_dir"
-    else
-      echo "Usage: u7 mv sync <source> to <destination>"
-      return 1
-    fi
-  elif [[ "$1" == "--help" || "$1" == "-h" ]]; then
-    cat << 'EOF'
+  case "$entity" in
+    file)
+      local src="$1"
+      if [[ "$2" == "to" ]]; then
+        local dst="$3"
+        _u7_exec mv "$src" "$dst"
+      else
+        echo "Usage: u7 mv file <source> to <destination>"
+        return 1
+      fi
+      ;;
+    sync)
+      local src_dir="$1"
+      if [[ "$2" == "to" ]]; then
+        local dst_dir="$3"
+        _u7_exec rsync -avz "$src_dir" "$dst_dir"
+      else
+        echo "Usage: u7 mv sync <source> to <destination>"
+        return 1
+      fi
+      ;;
+    --help|-h)
+      cat << 'EOF'
 u7 mv (move) - Relocate/Rename
 
-Usage: u7 mv <source> to <destination>
+Usage: u7 mv file <source> to <destination>
        u7 mv sync <source> to <destination>
 
 Examples:
-  u7 mv file.txt to /backup/
-  u7 mv file.txt to newname.txt
+  u7 mv file notes.txt to /backup/
+  u7 mv file old.txt to new.txt
   u7 mv sync local/ to remote/
 EOF
-  else
-    echo "Usage: u7 mv <source> to <destination>"
-    return 1
-  fi
+      ;;
+    *)
+      echo "Usage: u7 mv file <source> to <destination>"
+      return 1
+      ;;
+  esac
 }
 
 _u7_set() {
@@ -1021,8 +1029,8 @@ Entities:
   text <old> to <new> in <file>           Replace text in file(s)
   slashes to <back|forward> in <file>     Convert slashes
   tabs to spaces in <directory>           Convert tabs to spaces
-  perms to <mode> on <file>           Set file permissions
-  owner to <user> on <file>           Set file owner
+  perms to <mode> on <file>               Set file permissions
+  owner to <user> on <file>               Set file owner
 EOF
       ;;
 
@@ -1039,12 +1047,6 @@ _u7_run() {
   shift
 
   case "$entity" in
-    app)
-      echo "Error: 'u7 rn app' is not implemented."
-      echo "To run applications, use their direct commands or add custom handlers."
-      return 1
-      ;;
-
     job)
       local cmd="$1"
       if [[ "$2" != "in" ]]; then
@@ -1082,23 +1084,26 @@ _u7_run() {
       _u7_exec bash "$script"
       ;;
 
-    background)
-      if [[ "$_U7_DRY_RUN" == "1" ]]; then
-        echo "[dry-run] $* &"
-      else
-        "$@" &
-        echo "PID: $!"
-      fi
-      ;;
-
     check)
-      case "$1" in
-        syntax)
-          find . -name '*.sh' -exec bash -n {} \;
+      if [[ "$1" != "syntax" ]]; then
+        echo "Usage: u7 rn check syntax in <file|files> <path|pattern>"
+        return 1
+      fi
+      if [[ "$2" != "in" ]]; then
+        echo "Usage: u7 rn check syntax in <file|files> <path|pattern>"
+        return 1
+      fi
+      case "$3" in
+        file)
+          bash -n "$4"
+          ;;
+        files)
+          find . -name "$4" -exec bash -n {} \;
           echo "Syntax check complete"
           ;;
         *)
-          bash -n "$1"
+          echo "Usage: u7 rn check syntax in <file|files> <path|pattern>"
+          return 1
           ;;
       esac
       ;;
@@ -1116,12 +1121,6 @@ _u7_run() {
       fi
       ;;
 
-    priority)
-      local niceness="$1"
-      shift
-      _u7_exec nice -n "$niceness" "$@"
-      ;;
-
     --help|-h)
       cat << 'EOF'
 u7 rn (run) - Execute/Control
@@ -1129,20 +1128,39 @@ u7 rn (run) - Execute/Control
 Usage: u7 rn <entity> [arguments]
 
 Entities:
-  job <cmd> in <time>         Schedule command (5s, 10m, 1h)
-  script <path>               Execute shell script
-  background <command>        Run command in background
-  priority <nice> <command>   Run with CPU priority
-  check syntax                Check all .sh files syntax
-  check <file>                Check single file syntax
-  terminal [count]            Open new terminal(s)
+  job <cmd> in <time>                    Schedule command (5s, 10m, 1h)
+  script <path>                          Execute shell script
+  <command> in background                Run command in background
+  <command> with priority <nice>         Run with CPU priority
+  check syntax in file <path>            Check single file syntax
+  check syntax in files <pattern>        Check files matching pattern
+  terminal [count]                       Open new terminal(s)
 EOF
       ;;
 
     *)
-      echo "Unknown entity: $entity"
-      echo "Run 'u7 rn --help' for usage"
-      return 1
+      # Handle: u7 rn <command> in background
+      # Handle: u7 rn <command> with priority <nice>
+      local cmd="$entity"
+      if [[ "$1" == "in" && "$2" == "background" ]]; then
+        if [[ "$_U7_DRY_RUN" == "1" ]]; then
+          echo "[dry-run] $cmd &"
+        else
+          eval "$cmd" &
+          echo "PID: $!"
+        fi
+      elif [[ "$1" == "with" && "$2" == "priority" ]]; then
+        local niceness="$3"
+        if [[ "$_U7_DRY_RUN" == "1" ]]; then
+          echo "[dry-run] nice -n $niceness $cmd"
+        else
+          nice -n "$niceness" bash -c "$cmd"
+        fi
+      else
+        echo "Unknown entity: $entity"
+        echo "Run 'u7 rn --help' for usage"
+        return 1
+      fi
       ;;
   esac
 }
@@ -1184,17 +1202,16 @@ _u7_completions() {
             COMPREPLY=($(compgen -W "file dir dirs files line lines column duplicates process user --help" -- "$cur"))
             ;;
           convert|cv)
-            COMPREPLY=($(compgen -W "archive files png jpg jpeg gif video json case spaces --help" -- "$cur"))
+            COMPREPLY=($(compgen -W "archive files image video json case spaces --help" -- "$cur"))
             ;;
           move|mv)
-            COMPREPLY=($(compgen -W "sync --help" -- "$cur"))
-            _filedir
+            COMPREPLY=($(compgen -W "file sync --help" -- "$cur"))
             ;;
           set|st)
             COMPREPLY=($(compgen -W "text slashes tabs perms owner --help" -- "$cur"))
             ;;
           run|rn)
-            COMPREPLY=($(compgen -W "job script background priority check terminal --help" -- "$cur"))
+            COMPREPLY=($(compgen -W "job script check terminal --help" -- "$cur"))
             ;;
         esac
       fi
@@ -1212,17 +1229,16 @@ _u7_completions() {
             COMPREPLY=($(compgen -W "file dir dirs files line lines column duplicates process user --help" -- "$cur"))
             ;;
           convert|cv)
-            COMPREPLY=($(compgen -W "archive files png jpg jpeg gif video json case spaces --help" -- "$cur"))
+            COMPREPLY=($(compgen -W "archive files image video json case spaces --help" -- "$cur"))
             ;;
           move|mv)
-            COMPREPLY=($(compgen -W "sync --help" -- "$cur"))
-            _filedir
+            COMPREPLY=($(compgen -W "file sync --help" -- "$cur"))
             ;;
           set|st)
             COMPREPLY=($(compgen -W "text slashes tabs perms owner --help" -- "$cur"))
             ;;
           run|rn)
-            COMPREPLY=($(compgen -W "job script background priority check terminal --help" -- "$cur"))
+            COMPREPLY=($(compgen -W "job script check terminal --help" -- "$cur"))
             ;;
         esac
       else
@@ -1245,7 +1261,7 @@ _u7_completions() {
           drop|dr)
             case "${words[2]}" in
               dirs) COMPREPLY=($(compgen -W "empty" -- "$cur")) ;;
-              files) COMPREPLY=($(compgen -W "except" -- "$cur")) ;;
+              files) COMPREPLY=($(compgen -W "but" -- "$cur")) ;;
               lines) COMPREPLY=($(compgen -W "blank" -- "$cur")) ;;
               *) _filedir ;;
             esac
@@ -1297,7 +1313,7 @@ _u7_completions() {
         drop|dr)
           case "${words[$entity_idx]}" in
             dirs) COMPREPLY=($(compgen -W "empty" -- "$cur")) ;;
-            files) COMPREPLY=($(compgen -W "except" -- "$cur")) ;;
+            files) COMPREPLY=($(compgen -W "but" -- "$cur")) ;;
             lines) COMPREPLY=($(compgen -W "blank" -- "$cur")) ;;
             *) _filedir ;;
           esac
